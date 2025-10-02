@@ -3,26 +3,22 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiHome,
-  FiFolder,
   FiFile,
   FiUsers,
   FiSettings,
   FiLogOut,
+  FiUserPlus,
   FiUpload,
-  FiPlus,
-  FiDownload,
   FiKey,
   FiMenu,
   FiX,
-  FiChevronDown,
-  FiChevronRight,
   FiSearch,
   FiShare2,
-  FiBell,
-  FiUser,
-  FiGrid,
   FiStar,
   FiTrash2,
+  FiEdit2,
+  FiTrash2 as FiDelete,
+  FiRefreshCw,
 } from "react-icons/fi";
 import FolderTree from "../components/FolderTree";
 import FileList from "../components/FileList";
@@ -30,8 +26,9 @@ import UploadModal from "../components/UploadModal";
 import PermissionModal from "../components/PermissionModal";
 import UserManagement from "../components/UserManagement";
 import { useFolderTree, useCreateFolder } from "../hooks/useFolders";
-import { useFiles } from "../hooks/useFiles";
+import { useUsers, useDeleteUser } from "../hooks/useAuth";
 import type { User } from "../types";
+import { useFiles } from "../hooks/useFiles";
 
 const Dashboard: React.FC = () => {
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
@@ -46,9 +43,16 @@ const Dashboard: React.FC = () => {
     id: number;
     type: "folder" | "file";
   } | null>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const { data: folders, isLoading: foldersLoading } = useFolderTree();
   const { data: files, isLoading: filesLoading } = useFiles(selectedFolderId);
+  const {
+    data: users = [],
+    isLoading: usersLoading,
+    refetch: refetchUsers,
+  } = useUsers();
+  const deleteUser = useDeleteUser();
   const createFolder = useCreateFolder();
   const navigate = useNavigate();
 
@@ -76,6 +80,43 @@ const Dashboard: React.FC = () => {
     setIsPermissionModalOpen(true);
   };
 
+  const handleDeleteUser = (userId: number, username: string) => {
+    if (window.confirm(`Are you sure you want to delete user "${username}"?`)) {
+      deleteUser.mutate(userId, {
+        onSuccess: () => {
+          refetchUsers();
+        },
+      });
+    }
+  };
+
+  const handleEditUser = (userItem: User) => {
+    setEditingUser(userItem);
+    setIsUserManagementOpen(true);
+  };
+
+  const handleUserManagementClose = () => {
+    setIsUserManagementOpen(false);
+    setEditingUser(null);
+  };
+
+  const handleUserCreated = () => {
+    refetchUsers();
+
+    // If the current user updated their own details, update localStorage
+    if (editingUser && editingUser.id === user.id) {
+      const updatedUsers = Array.isArray(users) ? users : [];
+      const updatedCurrentUser = updatedUsers.find((u) => u.id === user.id);
+      if (updatedCurrentUser) {
+        localStorage.setItem("user", JSON.stringify(updatedCurrentUser));
+        // Force a re-render by updating state
+        window.dispatchEvent(new Event("storage"));
+      }
+    }
+
+    setEditingUser(null);
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -96,7 +137,6 @@ const Dashboard: React.FC = () => {
     },
     { id: "files", name: "My Files", icon: FiFile, color: "text-green-600" },
     { id: "shared", name: "Shared", icon: FiShare2, color: "text-purple-600" },
-
     {
       id: "favorites",
       name: "Favorites",
@@ -106,7 +146,15 @@ const Dashboard: React.FC = () => {
     { id: "trash", name: "Trash", icon: FiTrash2, color: "text-red-600" },
   ];
 
+  // Add Users section only for super_admin
   if (user.role === "super_admin") {
+    navigationItems.splice(3, 0, {
+      id: "users",
+      name: "Users",
+      icon: FiUsers,
+      color: "text-indigo-600",
+    });
+
     navigationItems.push({
       id: "admin",
       name: "Administration",
@@ -114,6 +162,22 @@ const Dashboard: React.FC = () => {
       color: "text-gray-600",
     });
   }
+
+  // Add Logout to navigation items
+  navigationItems.push({
+    id: "logout",
+    name: "Logout",
+    icon: FiLogOut,
+    color: "text-red-600",
+  });
+
+  const handleNavigationClick = (itemId: string) => {
+    if (itemId === "logout") {
+      handleLogout();
+    } else {
+      setActiveView(itemId);
+    }
+  };
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-50 to-blue-50/30">
@@ -178,17 +242,21 @@ const Dashboard: React.FC = () => {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setActiveView(item.id)}
+                    onClick={() => handleNavigationClick(item.id)}
                     className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${
-                      activeView === item.id
+                      activeView === item.id && item.id !== "logout"
                         ? "bg-blue-50 text-blue-700 border border-blue-200"
+                        : item.id === "logout"
+                        ? "text-red-600 hover:bg-red-50"
                         : "text-gray-600 hover:bg-gray-50"
                     }`}
                   >
                     <Icon
                       size={20}
                       className={`mr-3 ${
-                        activeView === item.id ? "text-blue-600" : item.color
+                        activeView === item.id && item.id !== "logout"
+                          ? "text-blue-600"
+                          : item.color
                       }`}
                     />
                     <span className="font-medium">{item.name}</span>
@@ -196,40 +264,11 @@ const Dashboard: React.FC = () => {
                 );
               })}
             </nav>
-
-            {/* Folders Section */}
-            <div className="mt-8 px-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
-                  Folders
-                </h3>
-                <button
-                  onClick={handleCreateFolder}
-                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
-                  title="New Folder"
-                >
-                  <FiPlus size={16} />
-                </button>
-              </div>
-
-              {foldersLoading ? (
-                <div className="flex justify-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                </div>
-              ) : (
-                <div className="bg-gray-50/50 rounded-xl p-3 border border-gray-200/60">
-                  <FolderTree
-                    folders={folders || []}
-                    onSelect={setSelectedFolderId}
-                  />
-                </div>
-              )}
-            </div>
           </div>
 
           {/* User Section */}
           <div className="p-6 border-t border-gray-200/60">
-            <div className="flex items-center space-x-3 mb-4">
+            <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
                 <span className="text-white font-semibold text-sm">
                   {user.username ? user.username.charAt(0).toUpperCase() : "U"}
@@ -240,23 +279,17 @@ const Dashboard: React.FC = () => {
                   {user.username}
                 </p>
                 <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+                <button
+                  onClick={() => handleEditUser(user)}
+                  className="text-xs text-blue-600 hover:text-blue-700 mt-1"
+                >
+                  Edit my details
+                </button>
               </div>
-              <button className="p-2 hover:bg-gray-100 rounded-xl transition-colors relative">
-                <FiBell size={18} className="text-gray-500" />
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
-              </button>
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center w-full px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors"
-            >
-              <FiLogOut className="mr-3" size={18} />
-              <span className="font-medium">Logout</span>
-            </button>
           </div>
         </div>
       </div>
-
       {/* Main Content */}
       <div className="flex-1 flex flex-col lg:ml-0 min-w-0">
         {/* Header */}
@@ -277,6 +310,7 @@ const Dashboard: React.FC = () => {
                   {activeView === "favorites" && "Favorites"}
                   {activeView === "trash" && "Trash"}
                   {activeView === "admin" && "Administration"}
+                  {activeView === "users" && "User Management"}
                 </h1>
                 <p className="text-gray-500">
                   {selectedFolderId
@@ -287,7 +321,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-3">
-              {user.role === "super_admin" && (
+              {user.role === "super_admin" && activeView !== "users" && (
                 <button
                   onClick={() => setIsUserManagementOpen(true)}
                   className="flex items-center space-x-2 px-4 py-2.5 bg-white border border-gray-300 rounded-xl shadow-sm text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all hover:shadow-md"
@@ -296,13 +330,27 @@ const Dashboard: React.FC = () => {
                   <span>Manage Users</span>
                 </button>
               )}
-              <button
-                onClick={() => setIsUploadModalOpen(true)}
-                className="flex items-center space-x-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all transform hover:scale-105"
-              >
-                <FiUpload size={18} />
-                <span>Upload</span>
-              </button>
+              {activeView === "users" && (
+                <button
+                  onClick={() => {
+                    setEditingUser(null);
+                    setIsUserManagementOpen(true);
+                  }}
+                  className="flex items-center space-x-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all transform hover:scale-105"
+                >
+                  <FiUserPlus size={18} />
+                  <span>Add User</span>
+                </button>
+              )}
+              {activeView !== "users" && (
+                <button
+                  onClick={() => setIsUploadModalOpen(true)}
+                  className="flex items-center space-x-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all transform hover:scale-105"
+                >
+                  <FiUpload size={18} />
+                  <span>Upload</span>
+                </button>
+              )}
             </div>
           </div>
         </header>
@@ -311,59 +359,185 @@ const Dashboard: React.FC = () => {
         <div className="flex-1 flex overflow-hidden">
           {/* File Content Area */}
           <div className="flex-1 overflow-y-auto p-6">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/60 p-6">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">
-                    {selectedFolderId ? `Folder Contents` : "All Files"}
-                  </h2>
-                  <p className="text-gray-500 mt-1">
-                    {filteredFiles.length} files •{" "}
-                    {filteredFiles
-                      .reduce((acc, file) => acc + (file.size || 0), 0)
-                      .toLocaleString()}{" "}
-                    bytes
-                  </p>
-                </div>
-
-                <div className="flex space-x-3">
-                  {user.role === "super_admin" && selectedFolderId && (
+            {activeView === "users" ? (
+              // Users Management View
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/60 p-6">
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">
+                      User Management
+                    </h2>
+                    <p className="text-gray-500 mt-1">
+                      Manage system users and permissions
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-3">
                     <button
-                      onClick={() =>
-                        handleAssignPermission(selectedFolderId, "folder")
-                      }
+                      onClick={() => refetchUsers()}
                       className="flex items-center space-x-2 px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all hover:shadow-md"
                     >
-                      <FiKey size={16} />
-                      <span>Permissions</span>
+                      <FiRefreshCw size={16} />
+                      <span>Refresh</span>
                     </button>
-                  )}
+                    <button
+                      onClick={() => {
+                        setEditingUser(null);
+                        setIsUserManagementOpen(true);
+                      }}
+                      className="flex items-center space-x-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all transform hover:scale-105"
+                    >
+                      <FiUserPlus size={18} />
+                      <span>Add User</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {filesLoading ? (
-                <div className="flex justify-center py-16">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                {/* Users List */}
+                {usersLoading ? (
+                  <div className="flex justify-center py-16">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {users.length === 0 ? (
+                      <div className="text-center py-12">
+                        <FiUsers
+                          className="mx-auto text-gray-400 mb-4"
+                          size={48}
+                        />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          No Users Found
+                        </h3>
+                        <p className="text-gray-500 mb-6">
+                          Get started by creating your first user
+                        </p>
+                        <button
+                          onClick={() => {
+                            setEditingUser(null);
+                            setIsUserManagementOpen(true);
+                          }}
+                          className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all font-medium"
+                        >
+                          Add New User
+                        </button>
+                      </div>
+                    ) : (
+                      users.map((userItem) => (
+                        <div
+                          key={userItem.id}
+                          className="flex items-center justify-between p-6 bg-gray-50 rounded-xl border border-gray-200 hover:shadow-md transition-all"
+                        >
+                          <div className="flex items-center space-x-4">
+                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                              <span className="text-white font-semibold text-lg">
+                                {userItem.username?.charAt(0).toUpperCase() ||
+                                  "U"}
+                              </span>
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-gray-900 text-lg">
+                                {userItem.username}
+                                {userItem.id === user.id && (
+                                  <span className="ml-2 text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded-lg">
+                                    You
+                                  </span>
+                                )}
+                              </h3>
+                              <p
+                                className={`text-sm capitalize ${
+                                  userItem.role === "super_admin"
+                                    ? "text-purple-600 font-medium"
+                                    : "text-gray-500"
+                                }`}
+                              >
+                                {userItem.role}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => handleEditUser(userItem)}
+                              className="p-3 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
+                              title="Edit User"
+                            >
+                              <FiEdit2 size={18} />
+                            </button>
+                            {userItem.id !== user.id && (
+                              <button
+                                onClick={() =>
+                                  handleDeleteUser(
+                                    userItem.id,
+                                    userItem.username
+                                  )
+                                }
+                                className="p-3 text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                                title="Delete User"
+                                disabled={deleteUser.isPending}
+                              >
+                                <FiDelete size={18} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Default File Management View
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/60 p-6">
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">
+                      {selectedFolderId ? `Folder Contents` : "All Files"}
+                    </h2>
+                    <p className="text-gray-500 mt-1">
+                      {filteredFiles.length} files •{" "}
+                      {filteredFiles
+                        .reduce((acc, file) => acc + (file.size || 0), 0)
+                        .toLocaleString()}{" "}
+                      bytes
+                    </p>
+                  </div>
+
+                  <div className="flex space-x-3">
+                    {user.role === "super_admin" && selectedFolderId && (
+                      <button
+                        onClick={() =>
+                          handleAssignPermission(selectedFolderId, "folder")
+                        }
+                        className="flex items-center space-x-2 px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all hover:shadow-md"
+                      >
+                        <FiKey size={16} />
+                        <span>Permissions</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <FileList
-                  files={filteredFiles}
-                  onAssignPermission={handleAssignPermission}
-                  userRole={user.role}
-                />
-              )}
-            </div>
+
+                {filesLoading ? (
+                  <div className="flex justify-center py-16">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : (
+                  <FileList
+                    files={filteredFiles}
+                    onAssignPermission={handleAssignPermission}
+                    userRole={user.role}
+                  />
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
-
       {/* Modals */}
       <UploadModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         folderId={selectedFolderId}
       />
-
       {permissionResource && (
         <PermissionModal
           isOpen={isPermissionModalOpen}
@@ -372,12 +546,13 @@ const Dashboard: React.FC = () => {
           resourceType={permissionResource.type}
         />
       )}
-
       <UserManagement
         isOpen={isUserManagementOpen}
-        onClose={() => setIsUserManagementOpen(false)}
+        onClose={handleUserManagementClose}
+        onUserCreated={handleUserCreated}
+        editingUser={editingUser}
+        currentUser={user} // Add this line
       />
-
       {/* Mobile sidebar overlay */}
       {mobileSidebarOpen && (
         <div

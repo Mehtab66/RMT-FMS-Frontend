@@ -1,37 +1,102 @@
 // components/UserManagement.tsx
-import React, { useState } from "react";
-import { useCreateUser } from "../hooks/useAuth";
+import React, { useState, useEffect } from "react";
+import { useCreateUser, useUpdateUser } from "../hooks/useAuth";
 import { Dialog } from "@headlessui/react";
-import { FiUserPlus, FiX, FiUser, FiShield } from "react-icons/fi";
+import {
+  FiUserPlus,
+  FiX,
+  FiUser,
+  FiShield,
+  FiEye,
+  FiEyeOff,
+  FiInfo,
+} from "react-icons/fi";
+import type { User } from "../types";
 
 interface UserManagementProps {
   isOpen: boolean;
   onClose: () => void;
+  onUserCreated: () => void;
+  editingUser?: User | null;
+  currentUser?: User;
 }
 
-const UserManagement: React.FC<UserManagementProps> = ({ isOpen, onClose }) => {
+const UserManagement: React.FC<UserManagementProps> = ({
+  isOpen,
+  onClose,
+  onUserCreated,
+  editingUser,
+  currentUser,
+}) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"super_admin" | "user">("user");
+  const [showPassword, setShowPassword] = useState(false);
+
   const createUser = useCreateUser();
+  const updateUser = useUpdateUser();
+
+  // Check if editing current user
+  const isEditingSelf =
+    editingUser && currentUser && editingUser.id === currentUser.id;
+
+  // Reset form when editingUser changes
+  useEffect(() => {
+    if (editingUser) {
+      setUsername(editingUser.username);
+      setPassword("");
+      setRole(editingUser.role as "super_admin" | "user");
+    } else {
+      setUsername("");
+      setPassword("");
+      setRole("user");
+    }
+    setShowPassword(false);
+  }, [editingUser]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createUser.mutate(
-      { username, password, role },
-      {
-        onSuccess: () => {
-          setUsername("");
-          setPassword("");
-          setRole("user");
-          onClose();
+
+    if (editingUser) {
+      // Update existing user
+      updateUser.mutate(
+        {
+          id: editingUser.id,
+          username,
+          password: password || undefined,
+          role: isEditingSelf ? currentUser!.role : role, // Don't allow role change for self
         },
-      }
-    );
+        {
+          onSuccess: () => {
+            onUserCreated();
+            onClose();
+          },
+        }
+      );
+    } else {
+      // Create new user
+      createUser.mutate(
+        { username, password, role },
+        {
+          onSuccess: () => {
+            onUserCreated();
+            onClose();
+          },
+        }
+      );
+    }
+  };
+
+  const handleClose = () => {
+    setUsername("");
+    setPassword("");
+    setRole("user");
+    setShowPassword(false);
+    onClose();
   };
 
   return (
-    <Dialog open={isOpen} onClose={onClose} className="relative z-50">
+    <Dialog open={isOpen} onClose={handleClose} className="relative z-50">
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-sm"
         aria-hidden="true"
@@ -45,15 +110,17 @@ const UserManagement: React.FC<UserManagementProps> = ({ isOpen, onClose }) => {
               </div>
               <div>
                 <Dialog.Title className="text-xl font-bold text-gray-900">
-                  Create New User
+                  {editingUser ? "Edit User" : "Create New User"}
                 </Dialog.Title>
                 <p className="text-sm text-gray-500">
-                  Add a new user to the system
+                  {editingUser
+                    ? "Update user details"
+                    : "Add a new user to the system"}
                 </p>
               </div>
             </div>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <FiX size={20} />
@@ -61,6 +128,25 @@ const UserManagement: React.FC<UserManagementProps> = ({ isOpen, onClose }) => {
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {isEditingSelf && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <div className="flex items-start space-x-3">
+                  <FiInfo
+                    className="text-blue-600 mt-0.5 flex-shrink-0"
+                    size={16}
+                  />
+                  <div>
+                    <p className="text-sm text-blue-800 font-medium">
+                      Editing Your Own Account
+                    </p>
+                    <p className="text-xs text-blue-700 mt-1">
+                      You cannot change your own role for security reasons.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-4">
               <div>
                 <label
@@ -92,16 +178,37 @@ const UserManagement: React.FC<UserManagementProps> = ({ isOpen, onClose }) => {
                   className="block text-sm font-medium text-gray-700 mb-2"
                 >
                   Password
+                  {editingUser && (
+                    <span className="text-xs text-gray-500 ml-2">
+                      (Leave blank to keep current password)
+                    </span>
+                  )}
                 </label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                  placeholder="Enter password"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pr-10 pl-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    placeholder={
+                      editingUser ? "Enter new password" : "Enter password"
+                    }
+                    required={!editingUser}
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? (
+                      <FiEyeOff size={18} />
+                    ) : (
+                      <FiEye size={18} />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -110,6 +217,11 @@ const UserManagement: React.FC<UserManagementProps> = ({ isOpen, onClose }) => {
                   className="block text-sm font-medium text-gray-700 mb-2"
                 >
                   Role
+                  {isEditingSelf && (
+                    <span className="text-xs text-gray-500 ml-2">
+                      (Cannot change your own role)
+                    </span>
+                  )}
                 </label>
                 <div className="relative">
                   <FiShield
@@ -122,7 +234,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ isOpen, onClose }) => {
                     onChange={(e) =>
                       setRole(e.target.value as "super_admin" | "user")
                     }
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
+                    disabled={isEditingSelf}
+                    className={`w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white ${
+                      isEditingSelf
+                        ? "bg-gray-50 text-gray-500 cursor-not-allowed"
+                        : ""
+                    }`}
                   >
                     <option value="user">User</option>
                     <option value="super_admin">Super Admin</option>
@@ -134,21 +251,23 @@ const UserManagement: React.FC<UserManagementProps> = ({ isOpen, onClose }) => {
             <div className="flex justify-end space-x-3 pt-4">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={createUser.isPending}
+                disabled={createUser.isPending || updateUser.isPending}
                 className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {createUser.isPending ? (
+                {createUser.isPending || updateUser.isPending ? (
                   <div className="flex items-center space-x-2">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Creating...</span>
+                    <span>{editingUser ? "Updating..." : "Creating..."}</span>
                   </div>
+                ) : editingUser ? (
+                  "Update User"
                 ) : (
                   "Create User"
                 )}
