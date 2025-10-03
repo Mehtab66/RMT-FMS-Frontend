@@ -1,7 +1,8 @@
 // components/FileList.tsx
 import React from "react";
 import type { File } from "../types";
-import { useDownloadFile } from "../hooks/useFiles";
+import { useDownloadFile, useDeleteFile } from "../hooks/useFiles";
+import { useUserPermissions } from "../hooks/usePermissions";
 import {
   FiDownload,
   FiKey,
@@ -12,26 +13,74 @@ import {
   FiArchive,
   FiFileText,
   FiMoreVertical,
-  FiShare2,
-  FiStar,
-  FiEye,
+  FiTrash2,
 } from "react-icons/fi";
 
 interface FileListProps {
   files: File[];
   onAssignPermission: (resourceId: number, resourceType: "file") => void;
   userRole: string;
+  userId?: number;
 }
 
 const FileList: React.FC<FileListProps> = ({
   files,
   onAssignPermission,
   userRole,
+  userId,
 }) => {
   const downloadFile = useDownloadFile();
+  const deleteFile = useDeleteFile();
+  const { data: userPermissions } = useUserPermissions();
+  
 
-  const handleDownload = (fileId: number, fileName: string) => {
+  // Check if user has download permission for a file
+  const hasDownloadPermission = (fileId: number) => {
+    if (!userPermissions) return false;
+    
+    // Check if file is owned by user (owners have all permissions)
+    const file = files.find(f => f.id === fileId);
+    if (file && userId && file.created_by === userId) {
+      return true;
+    }
+    
+    // Check direct permission for this file
+    const directPermission = userPermissions.find(
+      (perm) => perm.resource_id === fileId && perm.resource_type === "file"
+    );
+    
+    if (directPermission) {
+      return directPermission.can_download || false;
+    }
+    
+    // Check inherited permission from parent folder
+    if (file && file.folder_id) {
+      const folderPermission = userPermissions.find(
+        (perm) => perm.resource_id === file.folder_id && perm.resource_type === "folder"
+      );
+      
+      if (folderPermission) {
+        return folderPermission.can_download || false;
+      }
+    }
+    
+    return false;
+  };
+
+  const handleDownload = (fileId: number) => {
     downloadFile.mutate(fileId);
+  };
+
+  const handleDelete = (fileId: number, fileName: string) => {
+    if (window.confirm(`Are you sure you want to delete "${fileName}"?`)) {
+      deleteFile.mutate(fileId);
+    }
+  };
+
+  const handleFileClick = (file: File) => {
+    // Open file in new tab
+    const fileUrl = `http://localhost:3000/api/files/download/${file.id}`;
+    window.open(fileUrl, '_blank');
   };
 
   const formatFileSize = (bytes: number) => {
@@ -42,7 +91,7 @@ const FileList: React.FC<FileListProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const getFileIcon = (mimeType: string, fileName: string) => {
+  const getFileIcon = (mimeType: string) => {
     if (mimeType.startsWith("image/")) return FiImage;
     if (mimeType.startsWith("video/")) return FiVideo;
     if (mimeType.startsWith("audio/")) return FiMusic;
@@ -82,13 +131,14 @@ const FileList: React.FC<FileListProps> = ({
       ) : (
         <div className="grid gap-4">
           {files.map((file) => {
-            const FileIcon = getFileIcon(file.mime_type, file.name);
+            const FileIcon = getFileIcon(file.mime_type);
             const fileColor = getFileColor(file.mime_type);
 
             return (
               <div
                 key={file.id}
-                className="flex items-center space-x-4 p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all duration-200"
+                onClick={() => handleFileClick(file)}
+                className="flex items-center space-x-4 p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all duration-200 cursor-pointer"
               >
                 <div className={`p-3 rounded-xl ${fileColor}`}>
                   <FileIcon size={24} />
@@ -116,32 +166,49 @@ const FileList: React.FC<FileListProps> = ({
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => handleDownload(file.id, file.name)}
-                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
-                    title="Download"
-                  >
-                    <FiDownload size={18} />
-                  </button>
-
-                  <button
-                    className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-colors"
-                    title="Share"
-                  >
-                    <FiShare2 size={18} />
-                  </button>
-
-                  {userRole === "super_admin" && (
+                  {hasDownloadPermission(file.id) && (
                     <button
-                      onClick={() => onAssignPermission(file.id, "file")}
-                      className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors"
-                      title="Set Permissions"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(file.id);
+                      }}
+                      className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
+                      title="Download"
                     >
-                      <FiKey size={18} />
+                      <FiDownload size={18} />
                     </button>
                   )}
 
-                  <button className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors">
+      {userRole === "super_admin" && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onAssignPermission(file.id, "file");
+          }}
+          className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors"
+          title="Set Permissions"
+        >
+          <FiKey size={18} />
+        </button>
+      )}
+
+      {userRole === "super_admin" && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDelete(file.id, file.name);
+          }}
+          className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+          title="Delete"
+        >
+          <FiTrash2 size={18} />
+        </button>
+      )}
+
+                  <button 
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
+                  >
                     <FiMoreVertical size={18} />
                   </button>
                 </div>

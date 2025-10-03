@@ -36,12 +36,7 @@ export interface Permission {
   resource_id: number;
   resource_type: "folder" | "file";
   can_read: boolean;
-  can_create: boolean;
-  can_edit: boolean;
   can_download: boolean;
-  can_delete: boolean; // NEW
-  inherit: boolean;
-  expires_at: string | null; // NEW
   created_at: string;
   updated_at: string;
   username?: string; // For joined queries

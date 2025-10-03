@@ -96,12 +96,26 @@ const fetchRootFolders = async (): Promise<Folder[]> => {
   return response.data.folders as Folder[];
 };
 
+const fetchFoldersByParent = async (parentId: number): Promise<Folder[]> => {
+  const response = await axios.get(`${API_BASE_URL}/folders?parent_id=${parentId}`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+  });
+  return response.data.folders as Folder[];
+};
+
 // Add this hook
 export const useRootFolders = () =>
   useQuery({
     queryKey: ["rootFolders"],
     queryFn: fetchRootFolders,
     enabled: !!localStorage.getItem("token"),
+  });
+
+export const useFoldersByParent = (parentId: number | null) =>
+  useQuery({
+    queryKey: ["folders", parentId],
+    queryFn: () => fetchFoldersByParent(parentId!),
+    enabled: !!parentId && !!localStorage.getItem("token"),
   });
 // -----------------------------
 // React Query Hooks
@@ -131,11 +145,19 @@ export const useCreateFolder = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createFolder,
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["folders"] });
-      queryClient.invalidateQueries({ queryKey: ["rootFolders"] }); // ← ADD THIS LINE
-
+      queryClient.invalidateQueries({ queryKey: ["rootFolders"] });
       queryClient.invalidateQueries({ queryKey: ["folderTree"] });
+      
+      // Invalidate folders for the parent folder
+      if (variables.parent_id) {
+        queryClient.invalidateQueries({ queryKey: ["folders", variables.parent_id] });
+        queryClient.invalidateQueries({ queryKey: ["files", variables.parent_id] });
+      } else {
+        // If it's a root folder, invalidate root files
+        queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
+      }
     },
   });
 };
@@ -157,7 +179,10 @@ export const useDeleteFolder = () => {
     mutationFn: deleteFolder,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["folders"] });
+      queryClient.invalidateQueries({ queryKey: ["rootFolders"] });
       queryClient.invalidateQueries({ queryKey: ["folderTree"] });
+      // Invalidate all folder queries to ensure UI updates
+      queryClient.invalidateQueries({ queryKey: ["folders", undefined] });
     },
   });
 };

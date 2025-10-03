@@ -11,9 +11,14 @@ const fetchFiles = async (folderId: number | null = null): Promise<File[]> => {
     ? `${API_BASE_URL}/files?folder_id=${folderId}`
     : `${API_BASE_URL}/files`;
 
+  console.log(`🔍 Frontend fetchFiles called - folderId: ${folderId}, url: ${url}`);
+
   const response = await axios.get(url, {
     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
   });
+  
+  console.log(`📁 Frontend received ${response.data.files.length} files:`, response.data.files.map(f => ({ id: f.id, name: f.name, folder_id: f.folder_id })));
+  
   return response.data.files as File[];
 };
 
@@ -67,8 +72,9 @@ const uploadFolder = async (data: FormData): Promise<{ files: File[] }> => {
   for (let [key, value] of data.entries()) {
     if (value instanceof File) {
       console.log(
-        `  ${key}: File - ${value.name} (${value.size} bytes, ${value.type})`
+        `  ${key}: File - ${value.name} (${value.size} bytes)`
       );
+      console.log(`    - webkitRelativePath: ${(value as any).webkitRelativePath || 'NOT SET'}`);
     } else {
       console.log(`  ${key}: ${value}`);
     }
@@ -110,10 +116,15 @@ const downloadFile = async (id: number): Promise<void> => {
   console.log(`📥 Downloading file ${id}...`);
 
   try {
-    const response = await axios.get(`${API_BASE_URL}/files/${id}/download`, {
+    const response = await axios.get(`${API_BASE_URL}/files/download/${id}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       responseType: "blob",
     });
+
+    // Check if response is valid
+    if (!response.data) {
+      throw new Error("No file data received");
+    }
 
     // Create blob and download
     const blob = new Blob([response.data]);
@@ -132,13 +143,82 @@ const downloadFile = async (id: number): Promise<void> => {
     link.setAttribute("download", filename);
     document.body.appendChild(link);
     link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
+    
+    // Clean up after a short delay
+    setTimeout(() => {
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    }, 100);
 
     console.log("✅ Download completed:", filename);
-  } catch (error) {
+  } catch (error: any) {
     console.error("❌ Download failed:", error);
-    throw error;
+    
+    // Handle specific error cases
+    if (error.response?.status === 404) {
+      throw new Error("File not found");
+    } else if (error.response?.status === 403) {
+      throw new Error("Permission denied");
+    } else if (error.response?.status === 500) {
+      throw new Error("Server error occurred");
+    } else {
+      throw new Error(error.message || "Download failed");
+    }
+  }
+};
+
+const downloadFolder = async (id: number): Promise<void> => {
+  console.log(`📥 Downloading folder ${id}...`);
+
+  try {
+    const response = await axios.get(`${API_BASE_URL}/folders/${id}/download`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      responseType: "blob",
+    });
+
+    // Check if response is valid
+    if (!response.data) {
+      throw new Error("No folder data received");
+    }
+
+    // Create blob and download
+    const blob = new Blob([response.data]);
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+
+    // Get filename from content-disposition header or use ID
+    const contentDisposition = response.headers["content-disposition"];
+    let filename = `folder-${id}.zip`;
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+      if (filenameMatch) filename = filenameMatch[1];
+    }
+
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    
+    // Clean up after a short delay
+    setTimeout(() => {
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    }, 100);
+
+    console.log("✅ Folder download completed:", filename);
+  } catch (error: any) {
+    console.error("❌ Folder download failed:", error);
+    
+    // Handle specific error cases
+    if (error.response?.status === 404) {
+      throw new Error("Folder not found or you don't have permission to access it");
+    } else if (error.response?.status === 403) {
+      throw new Error("Permission denied - you don't have download permission for this folder");
+    } else if (error.response?.status === 500) {
+      throw new Error("Server error occurred");
+    } else {
+      throw new Error(error.message || "Folder download failed");
+    }
   }
 };
 // hooks/useFiles.ts - Add this function
@@ -194,6 +274,9 @@ export const useUploadFile = () => {
     mutationFn: uploadFile,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["files"] });
+      queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
+      // Invalidate all file queries to ensure UI updates
+      queryClient.invalidateQueries({ queryKey: ["files", undefined] });
     },
     onError: (error: any) => {
       console.error("Upload mutation error:", error);
@@ -205,11 +288,34 @@ export const useUploadFolder = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: uploadFolder,
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("🎉 FOLDER UPLOAD SUCCESS:", data);
+      console.log("🔄 Invalidating queries...");
+      
+      // Invalidate all file queries
       queryClient.invalidateQueries({ queryKey: ["files"] });
+      queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
+      queryClient.invalidateQueries({ queryKey: ["folders"] });
+      queryClient.invalidateQueries({ queryKey: ["rootFolders"] });
+      
+      // Invalidate specific folder queries
+      queryClient.invalidateQueries({ queryKey: ["files", null] });
+      queryClient.invalidateQueries({ queryKey: ["files", undefined] });
+      queryClient.invalidateQueries({ queryKey: ["folders", null] });
+      queryClient.invalidateQueries({ queryKey: ["folders", undefined] });
+      
+      // Force refetch of all data
+      queryClient.refetchQueries({ queryKey: ["files"] });
+      queryClient.refetchQueries({ queryKey: ["folders"] });
+      
+      console.log("✅ All queries invalidated and refetched");
     },
     onError: (error: any) => {
-      console.error("Folder upload mutation error:", error);
+      console.error("❌ FOLDER UPLOAD ERROR:", error);
+      console.error("❌ Error details:", error.message);
+      console.error("❌ Error response:", error.response?.data);
+      console.error("❌ Error status:", error.response?.status);
+      alert(`Upload failed: ${error.message || 'Unknown error'}`);
     },
   });
 };
@@ -221,6 +327,18 @@ export const useDownloadFile = () =>
     mutationFn: downloadFile,
     onError: (error: any) => {
       console.error("Download mutation error:", error);
+      // Show user-friendly error message
+      alert("Download failed. Please try again.");
+    },
+  });
+
+export const useDownloadFolder = () =>
+  useMutation({
+    mutationFn: downloadFolder,
+    onError: (error: any) => {
+      console.error("Folder download mutation error:", error);
+      // Show user-friendly error message
+      alert("Folder download failed. Please try again.");
     },
   });
 
@@ -230,6 +348,9 @@ export const useUpdateFile = () => {
     mutationFn: updateFile,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["files"] });
+      queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
+      // Invalidate all file queries to ensure UI updates
+      queryClient.invalidateQueries({ queryKey: ["files", undefined] });
     },
   });
 };
@@ -240,6 +361,9 @@ export const useDeleteFile = () => {
     mutationFn: deleteFile,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["files"] });
+      queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
+      // Invalidate all file queries to ensure UI updates
+      queryClient.invalidateQueries({ queryKey: ["files", undefined] });
     },
   });
 };

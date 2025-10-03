@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Dialog } from "@headlessui/react";
-import { useUploadFile } from "../hooks/useFiles";
+import { useUploadFile, useUploadFolder } from "../hooks/useFiles";
 import { FiUpload, FiX, FiFile, FiFolder, FiCloud } from "react-icons/fi";
 
 interface UploadModalProps {
@@ -21,7 +21,8 @@ const UploadModal: React.FC<UploadModalProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const uploadFileMutation = useUploadFile(); // handles both single & multiple
+  const uploadFileMutation = useUploadFile();
+  const uploadFolderMutation = useUploadFolder();
 
   // ✅ Reset state when modal opens or closes
   useEffect(() => {
@@ -34,7 +35,27 @@ const UploadModal: React.FC<UploadModalProps> = ({
   }, [isOpen]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFiles(e.target.files);
+    const files = e.target.files;
+    const input = e.target;
+    
+    console.log("📁 Files selected:", files?.length);
+    console.log("📁 Input attributes:", {
+      webkitdirectory: input.webkitdirectory,
+      multiple: input.multiple,
+      type: input.type
+    });
+    
+    if (files) {
+      Array.from(files).forEach((file, index) => {
+        console.log(`📄 File ${index + 1}:`, {
+          name: file.name,
+          webkitRelativePath: (file as any).webkitRelativePath,
+          size: file.size
+        });
+      });
+    }
+    
+    setFiles(files);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -50,6 +71,14 @@ const UploadModal: React.FC<UploadModalProps> = ({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
+    
+    // For folder uploads, we need to use the file input with webkitdirectory
+    if (uploadType === "folder") {
+      // Show a message to use the file input for folders
+      alert("Please click 'Choose Files' and select a folder for folder uploads. Drag & drop doesn't preserve folder structure.");
+      return;
+    }
+    
     setFiles(e.dataTransfer.files);
   };
 
@@ -65,7 +94,12 @@ const UploadModal: React.FC<UploadModalProps> = ({
 
       if (folderId) formData.append("folder_id", folderId.toString());
 
-      await uploadFileMutation.mutateAsync(formData);
+      // Use the correct mutation based on upload type
+      if (uploadType === "folder") {
+        await uploadFolderMutation.mutateAsync(formData);
+      } else {
+        await uploadFileMutation.mutateAsync(formData);
+      }
 
       // ✅ Reset after successful upload
       setFiles(null);
@@ -158,6 +192,7 @@ const UploadModal: React.FC<UploadModalProps> = ({
                   : {})}
                 onChange={handleFileChange}
                 className="hidden"
+                title={uploadType === "folder" ? "Select a folder" : "Select files"}
               />
 
               <FiCloud className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -169,16 +204,25 @@ const UploadModal: React.FC<UploadModalProps> = ({
                       ? `${files?.length} files selected`
                       : `${files?.length} file(s) selected`}
                   </p>
+                  {uploadType === "folder" && (
+                    <p className="text-sm text-blue-600 mt-2">
+                      ✓ Folder structure will be preserved
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div>
                   <p className="font-medium text-gray-900">
-                    Drag and drop your{" "}
-                    {uploadType === "file" ? "file(s)" : "folder"} here
+                    {uploadType === "file" 
+                      ? "Drag and drop your file(s) here or click to browse"
+                      : "Click 'Choose Files' and select a folder to upload"
+                    }
                   </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    or click to browse
-                  </p>
+                  {uploadType === "folder" && (
+                    <p className="text-sm text-orange-600 mt-1">
+                      ⚠️ Use the file picker for folders (drag & drop doesn't preserve structure)
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -194,10 +238,10 @@ const UploadModal: React.FC<UploadModalProps> = ({
             </button>
             <button
               onClick={handleSubmit}
-              disabled={!files || uploadFileMutation.isPending}
+              disabled={!files || uploadFileMutation.isPending || uploadFolderMutation.isPending}
               className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {uploadFileMutation.isPending ? (
+              {(uploadFileMutation.isPending || uploadFolderMutation.isPending) ? (
                 <div className="flex items-center space-x-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   <span>Uploading...</span>

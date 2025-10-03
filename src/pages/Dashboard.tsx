@@ -11,7 +11,6 @@ import {
   FiMenu,
   FiX,
   FiSearch,
-  FiShare2,
   FiStar,
   FiTrash2,
 } from "react-icons/fi";
@@ -69,7 +68,6 @@ const Dashboard: React.FC = () => {
       color: "text-blue-600",
     },
     { id: "files", name: "My Files", icon: FiFile, color: "text-green-600" },
-    { id: "shared", name: "Shared", icon: FiShare2, color: "text-purple-600" },
     {
       id: "favorites",
       name: "Favorites",
@@ -217,7 +215,6 @@ const Dashboard: React.FC = () => {
                 <h1 className="text-2xl font-bold text-gray-900">
                   {activeView === "dashboard" && "Dashboard"}
                   {activeView === "files" && "My Files"}
-                  {activeView === "shared" && "Shared Files"}
                   {activeView === "favorites" && "Favorites"}
                   {activeView === "trash" && "Trash"}
                   {activeView === "users" && "User Management"}
