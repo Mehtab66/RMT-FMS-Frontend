@@ -260,6 +260,60 @@ const deleteFile = async (id: number): Promise<{ message: string }> => {
   return response.data as { message: string };
 };
 
+// Favourites and Trash functions
+const toggleFileFavourite = async (id: number): Promise<{ id: number; is_faviourite: boolean }> => {
+  const response = await axios.post(`${API_BASE_URL}/files/${id}/favourite/toggle`, {}, {
+    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+  });
+  return response.data as { id: number; is_faviourite: boolean };
+};
+
+const fetchFavouriteFiles = async (): Promise<File[]> => {
+  const response = await axios.get(`${API_BASE_URL}/files/favourites`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+  });
+  return response.data.files as File[];
+};
+
+const fetchTrashFiles = async (): Promise<File[]> => {
+  const response = await axios.get(`${API_BASE_URL}/files/trash`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+  });
+  return response.data.files as File[];
+};
+
+// Favourites navigation functions
+const fetchFavouriteFilesNavigation = async (folderId: number | null = null): Promise<File[]> => {
+  const url = folderId
+    ? `${API_BASE_URL}/files/favourites/navigate?folder_id=${folderId}`
+    : `${API_BASE_URL}/files/favourites/navigate`;
+
+  console.log(`🔍 Frontend fetchFavouriteFilesNavigation called - folderId: ${folderId}, url: ${url}`);
+
+  const response = await axios.get(url, {
+    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+  });
+  
+  console.log(`📁 Frontend received ${response.data.files.length} favourite files:`, response.data.files.map(f => ({ id: f.id, name: f.name, folder_id: f.folder_id })));
+  
+  return response.data.files as File[];
+};
+
+// Restore and permanent delete functions
+const restoreFile = async (id: number): Promise<{ message: string }> => {
+  const response = await axios.post(`${API_BASE_URL}/files/${id}/restore`, {}, {
+    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+  });
+  return response.data as { message: string };
+};
+
+const permanentDeleteFile = async (id: number): Promise<{ message: string }> => {
+  const response = await axios.delete(`${API_BASE_URL}/files/${id}/permanent`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+  });
+  return response.data as { message: string };
+};
+
 // Hooks
 export const useFiles = (folderId: number | null = null) =>
   useQuery({
@@ -364,6 +418,69 @@ export const useDeleteFile = () => {
       queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
       // Invalidate all file queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ["files", undefined] });
+    },
+  });
+};
+
+// New hooks for favourites and trash
+export const useToggleFileFavourite = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: toggleFileFavourite,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["files"] });
+      queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
+      queryClient.invalidateQueries({ queryKey: ["favouriteFiles"] });
+      queryClient.invalidateQueries({ queryKey: ["trashFiles"] });
+    },
+  });
+};
+
+export const useFavouriteFiles = () =>
+  useQuery({
+    queryKey: ["favouriteFiles"],
+    queryFn: fetchFavouriteFiles,
+    enabled: !!localStorage.getItem("token"),
+  });
+
+export const useTrashFiles = () =>
+  useQuery({
+    queryKey: ["trashFiles"],
+    queryFn: fetchTrashFiles,
+    enabled: !!localStorage.getItem("token"),
+  });
+
+// New hooks for favourites navigation
+export const useFavouriteFilesNavigation = (folderId: number | null = null) =>
+  useQuery({
+    queryKey: ["favouriteFilesNavigation", folderId],
+    queryFn: () => fetchFavouriteFilesNavigation(folderId),
+    enabled: !!localStorage.getItem("token"),
+  });
+
+// New hooks for restore and permanent delete
+export const useRestoreFile = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: restoreFile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["files"] });
+      queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
+      queryClient.invalidateQueries({ queryKey: ["favouriteFiles"] });
+      queryClient.invalidateQueries({ queryKey: ["trashFiles"] });
+    },
+  });
+};
+
+export const usePermanentDeleteFile = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: permanentDeleteFile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["files"] });
+      queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
+      queryClient.invalidateQueries({ queryKey: ["favouriteFiles"] });
+      queryClient.invalidateQueries({ queryKey: ["trashFiles"] });
     },
   });
 };

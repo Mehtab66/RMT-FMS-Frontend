@@ -10,11 +10,12 @@ import {
   FiEdit3,
   FiTrash2,
   FiDownload,
+  FiHeart,
 } from "react-icons/fi";
 import FileList from "./FileList";
 import UploadModal from "./UploadModal";
 import PermissionModal from "./PermissionModal";
-import { useCreateFolder, useRootFolders, useFoldersByParent, useUpdateFolder, useDeleteFolder } from "../hooks/useFolders";
+import { useCreateFolder, useRootFolders, useFoldersByParent, useUpdateFolder, useDeleteFolder, useToggleFolderFavourite } from "../hooks/useFolders";
 import { useFiles, useRootFiles, useDownloadFolder } from "../hooks/useFiles";
 import { useUserPermissions } from "../hooks/usePermissions";
 import type { User, Folder } from "../types";
@@ -54,6 +55,7 @@ const FileManagement: React.FC<FileManagementProps> = ({
   const updateFolder = useUpdateFolder();
   const deleteFolder = useDeleteFolder();
   const downloadFolder = useDownloadFolder();
+  const toggleFolderFavourite = useToggleFolderFavourite();
   const { data: userPermissions } = useUserPermissions();
   
 
@@ -187,6 +189,12 @@ const FileManagement: React.FC<FileManagementProps> = ({
     setOpenDropdownId(null);
   };
 
+  const handleToggleFolderFavourite = (folderId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleFolderFavourite.mutate(folderId);
+    setOpenDropdownId(null);
+  };
+
 
   return (
     <>
@@ -271,6 +279,19 @@ const FileManagement: React.FC<FileManagementProps> = ({
                         <p className="text-sm text-gray-500">Folder</p>
                       </div>
                       
+                      {/* Heart icon */}
+                      <button
+                        onClick={(e) => handleToggleFolderFavourite(folder.id, e)}
+                        className={`p-2 rounded-xl transition-colors mr-2 ${
+                          folder.is_faviourite
+                            ? 'text-red-500 hover:text-red-600 hover:bg-red-50'
+                            : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                        }`}
+                        title={folder.is_faviourite ? "Remove from favorites" : "Add to favorites"}
+                      >
+                        <FiHeart size={16} fill={folder.is_faviourite ? 'currentColor' : 'none'} />
+                      </button>
+                      
                       {/* 3-dot dropdown menu */}
                       <div className="relative">
                         <button
@@ -354,6 +375,7 @@ const FileManagement: React.FC<FileManagementProps> = ({
                   onAssignPermission={handleAssignPermission}
                   userRole={user.role}
                   userId={user.id}
+                  showFavouriteToggle={true}
                 />
               </div>
             )}

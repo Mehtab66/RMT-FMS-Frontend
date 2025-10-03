@@ -1,7 +1,7 @@
 // components/FileList.tsx
 import React from "react";
 import type { File } from "../types";
-import { useDownloadFile, useDeleteFile } from "../hooks/useFiles";
+import { useDownloadFile, useDeleteFile, useToggleFileFavourite, useRestoreFile, usePermanentDeleteFile } from "../hooks/useFiles";
 import { useUserPermissions } from "../hooks/usePermissions";
 import {
   FiDownload,
@@ -14,6 +14,8 @@ import {
   FiFileText,
   FiMoreVertical,
   FiTrash2,
+  FiHeart,
+  FiRotateCcw,
 } from "react-icons/fi";
 
 interface FileListProps {
@@ -21,6 +23,8 @@ interface FileListProps {
   onAssignPermission: (resourceId: number, resourceType: "file") => void;
   userRole: string;
   userId?: number;
+  showFavouriteToggle?: boolean;
+  isTrashView?: boolean;
 }
 
 const FileList: React.FC<FileListProps> = ({
@@ -28,9 +32,14 @@ const FileList: React.FC<FileListProps> = ({
   onAssignPermission,
   userRole,
   userId,
+  showFavouriteToggle = false,
+  isTrashView = false,
 }) => {
   const downloadFile = useDownloadFile();
   const deleteFile = useDeleteFile();
+  const toggleFavourite = useToggleFileFavourite();
+  const restoreFile = useRestoreFile();
+  const permanentDeleteFile = usePermanentDeleteFile();
   const { data: userPermissions } = useUserPermissions();
   
 
@@ -74,6 +83,39 @@ const FileList: React.FC<FileListProps> = ({
   const handleDelete = (fileId: number, fileName: string) => {
     if (window.confirm(`Are you sure you want to delete "${fileName}"?`)) {
       deleteFile.mutate(fileId);
+    }
+  };
+
+  const handleToggleFavourite = (fileId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleFavourite.mutate(fileId);
+  };
+
+  const handleRestore = (fileId: number, fileName: string) => {
+    if (window.confirm(`Are you sure you want to restore "${fileName}"?`)) {
+      restoreFile.mutate(fileId, {
+        onSuccess: () => {
+          console.log("✅ File restored successfully");
+        },
+        onError: (error: any) => {
+          console.error("❌ Failed to restore file:", error);
+          alert("Failed to restore file. Please try again.");
+        },
+      });
+    }
+  };
+
+  const handlePermanentDelete = (fileId: number, fileName: string) => {
+    if (window.confirm(`Are you sure you want to permanently delete "${fileName}"? This action cannot be undone.`)) {
+      permanentDeleteFile.mutate(fileId, {
+        onSuccess: () => {
+          console.log("✅ File permanently deleted");
+        },
+        onError: (error: any) => {
+          console.error("❌ Failed to permanently delete file:", error);
+          alert("Failed to permanently delete file. Please try again.");
+        },
+      });
     }
   };
 
@@ -138,7 +180,9 @@ const FileList: React.FC<FileListProps> = ({
               <div
                 key={file.id}
                 onClick={() => handleFileClick(file)}
-                className="flex items-center space-x-4 p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all duration-200 cursor-pointer"
+                className={`flex items-center space-x-4 p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all duration-200 cursor-pointer ${
+                  isTrashView ? 'opacity-75' : ''
+                }`}
               >
                 <div className={`p-3 rounded-xl ${fileColor}`}>
                   <FileIcon size={24} />
@@ -166,7 +210,22 @@ const FileList: React.FC<FileListProps> = ({
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  {hasDownloadPermission(file.id) && (
+                  {/* Heart icon for favourites */}
+                  {showFavouriteToggle && (
+                    <button
+                      onClick={(e) => handleToggleFavourite(file.id, e)}
+                      className={`p-2 rounded-xl transition-colors ${
+                        file.is_faviourite
+                          ? 'text-red-500 hover:text-red-600 hover:bg-red-50'
+                          : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                      }`}
+                      title={file.is_faviourite ? "Remove from favorites" : "Add to favorites"}
+                    >
+                      <FiHeart size={18} fill={file.is_faviourite ? 'currentColor' : 'none'} />
+                    </button>
+                  )}
+
+                  {hasDownloadPermission(file.id) && !isTrashView && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -179,31 +238,58 @@ const FileList: React.FC<FileListProps> = ({
                     </button>
                   )}
 
-      {userRole === "super_admin" && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onAssignPermission(file.id, "file");
-          }}
-          className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors"
-          title="Set Permissions"
-        >
-          <FiKey size={18} />
-        </button>
-      )}
+                  {userRole === "super_admin" && !isTrashView && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAssignPermission(file.id, "file");
+                      }}
+                      className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors"
+                      title="Set Permissions"
+                    >
+                      <FiKey size={18} />
+                    </button>
+                  )}
 
-      {userRole === "super_admin" && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDelete(file.id, file.name);
-          }}
-          className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-          title="Delete"
-        >
-          <FiTrash2 size={18} />
-        </button>
-      )}
+                  {/* Trash view actions */}
+                  {isTrashView && (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRestore(file.id, file.name);
+                        }}
+                        className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors"
+                        title="Restore"
+                      >
+                        <FiRotateCcw size={18} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePermanentDelete(file.id, file.name);
+                        }}
+                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                        title="Delete Forever"
+                      >
+                        <FiTrash2 size={18} />
+                      </button>
+                    </>
+                  )}
+
+                  {/* Regular view actions */}
+                  {!isTrashView && userRole === "super_admin" && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(file.id, file.name);
+                      }}
+                      className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                      title="Delete"
+                    >
+                      <FiTrash2 size={18} />
+                    </button>
+                  )}
 
                   <button 
                     onClick={(e) => e.stopPropagation()}

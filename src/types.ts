@@ -12,6 +12,8 @@ export interface Folder {
   created_by: number;
   created_at: string;
   updated_at: string;
+  is_faviourite: boolean;
+  is_deleted: boolean;
   folder_name?: string; // For joined queries
 }
 
@@ -27,6 +29,8 @@ export interface File {
   created_by: number;
   created_at: string;
   updated_at: string;
+  is_faviourite: boolean;
+  is_deleted: boolean;
   folder_name?: string; // For joined queries
 }
 
