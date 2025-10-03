@@ -143,23 +143,7 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
 
-          {/* Search */}
-          <div className="p-6">
-            <div className="relative">
-              <FiSearch
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
-                size={18}
-              />
-              <input
-                type="text"
-                placeholder="Search files..."
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-
+       
           {/* Navigation */}
           <div className="flex-1 px-3">
             <nav className="space-y-1">
