@@ -82,6 +82,27 @@ const uploadFolder = async (formData: FormData): Promise<{ files: any[] }> => {
   return response.data as { files: any[] };
 };
 
+// hooks/useFolders.ts - Add this function
+// hooks/useFolders.ts - Update the fetchRootFolders function
+
+const fetchRootFolders = async (): Promise<Folder[]> => {
+  console.log("fetchRootFolders called");
+
+  const response = await axios.get(`${API_BASE_URL}/folders/root`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+  });
+  console.log("fetchRootFolders response:", response);
+
+  return response.data.folders as Folder[];
+};
+
+// Add this hook
+export const useRootFolders = () =>
+  useQuery({
+    queryKey: ["rootFolders"],
+    queryFn: fetchRootFolders,
+    enabled: !!localStorage.getItem("token"),
+  });
 // -----------------------------
 // React Query Hooks
 // -----------------------------
@@ -112,6 +133,8 @@ export const useCreateFolder = () => {
     mutationFn: createFolder,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["folders"] });
+      queryClient.invalidateQueries({ queryKey: ["rootFolders"] }); // ← ADD THIS LINE
+
       queryClient.invalidateQueries({ queryKey: ["folderTree"] });
     },
   });

@@ -141,7 +141,21 @@ const downloadFile = async (id: number): Promise<void> => {
     throw error;
   }
 };
+// hooks/useFiles.ts - Add this function
+const fetchRootFiles = async (): Promise<File[]> => {
+  const response = await axios.get(`${API_BASE_URL}/files/root`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+  });
+  return response.data.files as File[];
+};
 
+// Add this hook
+export const useRootFiles = () =>
+  useQuery({
+    queryKey: ["rootFiles"],
+    queryFn: fetchRootFiles,
+    enabled: !!localStorage.getItem("token"),
+  });
 const updateFile = async ({
   id,
   name,

@@ -234,7 +234,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
                     onChange={(e) =>
                       setRole(e.target.value as "super_admin" | "user")
                     }
-                    disabled={isEditingSelf}
+                    disabled={!!isEditingSelf}
                     className={`w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white ${
                       isEditingSelf
                         ? "bg-gray-50 text-gray-500 cursor-not-allowed"

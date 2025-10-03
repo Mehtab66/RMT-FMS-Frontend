@@ -55,6 +55,11 @@ const FolderTreeComponent: React.FC<FolderTreeProps> = ({
     setLocalFolders(updateFolders(localFolders));
   };
 
+  const handleFolderSelect = (folderId: number | null) => {
+    console.log("📁 FolderTree - Selecting folder:", folderId);
+    onSelect(folderId);
+  };
+
   const renderTree = (nodes: TreeNode[], level = 0) => {
     return nodes.map((node) => (
       <div key={node.id}>
@@ -62,7 +67,7 @@ const FolderTreeComponent: React.FC<FolderTreeProps> = ({
           className={`flex items-center py-2 px-3 rounded-md hover:bg-gray-100 cursor-pointer ${
             level > 0 ? "ml-4" : ""
           }`}
-          onClick={() => onSelect(node.id)}
+          onClick={() => handleFolderSelect(node.id)}
         >
           <button
             className="mr-1 p-1 rounded-md hover:bg-gray-200"
@@ -95,7 +100,7 @@ const FolderTreeComponent: React.FC<FolderTreeProps> = ({
     <div className="p-2">
       <div
         className="flex items-center py-2 px-3 rounded-md hover:bg-gray-100 cursor-pointer mb-2"
-        onClick={() => onSelect(null)}
+        onClick={() => handleFolderSelect(null)}
       >
         <FiFolderPlus className="mr-2 text-blue-500" size={18} />
         <span className="text-sm font-medium">All Files</span>
