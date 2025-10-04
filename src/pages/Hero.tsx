@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
+// Import the logo
+import Logo from "../assets/ReviveMedicalTech.png";
+import DrMurtaza from "../assets/DrMurtaza.jpeg";
+import Abdullah from "../assets/Abdullah.png";
+import Ammad from "../assets/Ammad.png";
+
 // Define TypeScript interfaces
 interface Feature {
   id: number;
@@ -14,7 +20,7 @@ interface Testimonial {
   name: string;
   role: string;
   content: string;
-  avatar: string;
+  avatar: string; // This should accept both emoji and image paths
 }
 
 const RMTFileManagementSystem: React.FC = () => {
@@ -66,24 +72,24 @@ const RMTFileManagementSystem: React.FC = () => {
       name: "Dr. Murtaza Najabat Ali",
       role: "CEO, CEng (UK), DIMechE, PE",
       content:
-        "This system has revolutionized how we manage our research documents and medical files with unparalleled security.",
-      avatar: "👨‍💼",
+        "This system has revolutionized how we manage our research documents and medical files. The file sharing capabilities are incredibly secure yet remarkably intuitive.",
+      avatar: DrMurtaza, // Using DrMurtaza image for CEO
     },
     {
       id: 2,
-      name: "Sarah Johnson",
-      role: "Lead Researcher",
+      name: "Ammad Ahmed",
+      role: "Chief Operating Officer",
       content:
-        "The permission system is incredibly detailed, allowing me to share specific files with specific team members effortlessly.",
-      avatar: "👩‍🔬",
+        "File sharing used to be our biggest bottleneck - now it's our greatest strength. The granular permission system lets me share exactly what's needed with exactly who needs it.",
+      avatar: Ammad, // Using Ammad.png for Ammad Ahmed
     },
     {
       id: 3,
-      name: "Michael Chen",
-      role: "IT Administrator",
+      name: "Asad Abdullah Shahid",
+      role: "Production Manager",
       content:
-        "Setting up user accounts and managing permissions has never been easier. The admin dashboard is intuitive and powerful.",
-      avatar: "👨‍💻",
+        "We went from struggling with chaotic file sharing methods to having a streamlined, secure system. Sharing large project files across teams is now instantaneous and foolproof.",
+      avatar: Abdullah, // Using Abdullah.png for Asad Abdullah
     },
   ];
 
@@ -239,22 +245,24 @@ const RMTFileManagementSystem: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
       <header
-        className={`fixed w-full transition-all duration-300 z-50 ${
-          isScrolled ? "bg-white shadow-md py-2" : "bg-transparent py-4"
+        className={`w-full transition-all duration-300 z-50 ${
+          isScrolled ? "bg-white shadow-md" : ""
         }`}
       >
         <div className="container mx-auto px-4 flex justify-between items-center">
           <div className="flex items-center">
-            <div className="text-2xl font-bold text-blue-700">RMT</div>
-            <div className="ml-3 text-sm text-gray-600 hidden md:block">
-              Revive Medical Technologies
-            </div>
+            {/* Logo in Header */}
+            <img
+              src={Logo}
+              alt="Revive Medical Technologies"
+              className="h-12 md:h-16 lg:h-20 xl:h-24 2xl:h-28 w-auto transition-all duration-300"
+            />
           </div>
 
           <div>
             <Link
               to="/login"
-              className="bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
+              className="bg-blue-600 text-white px-10 py-2.5 rounded-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
             >
               Login
             </Link>
@@ -263,23 +271,24 @@ const RMTFileManagementSystem: React.FC = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4">
+      <section className="pt-10 pb-20 px-4">
         <div className="container mx-auto text-center max-w-4xl">
           <h1 className="text-5xl md:text-6xl font-bold text-gray-800 mb-6 leading-tight">
-            Secure File Management for{" "}
-            <span className="text-blue-600">Medical Innovation</span>
+            Electronic Document Management System for
+            <br />{" "}
+            <span className="text-blue-600">Revive Medical Technologies</span>
           </h1>
           <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
             Advanced file and folder management system with granular
             permissions, designed specifically for Revive Medical Technologies.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <a
-              href="/login"
-              className="bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl"
+            <Link
+              to="/login"
+              className="bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl text-center"
             >
               Get Started
-            </a>
+            </Link>
           </div>
 
           <FileStructureVisualization />
@@ -345,13 +354,21 @@ const RMTFileManagementSystem: React.FC = () => {
                 key={testimonial.id}
                 className="bg-white bg-opacity-10 p-6 rounded-2xl backdrop-filter backdrop-blur-sm"
               >
-                <div className="text-4xl mb-4">{testimonial.avatar}</div>
-                <p className="mb-4 text-blue-100 italic">
+                <div className="mb-4">
+                  <img
+                    src={testimonial.avatar}
+                    alt={testimonial.name}
+                    className="w-32 h-32 rounded-full object-cover mx-auto border-2 border-white"
+                  />
+                </div>
+                <p className="mb-4 text-black italic">
                   "{testimonial.content}"
                 </p>
                 <div>
-                  <h4 className="font-semibold text-lg">{testimonial.name}</h4>
-                  <p className="text-blue-200">{testimonial.role}</p>
+                  <h4 className="font-semibold text-lg text-black">
+                    {testimonial.name}
+                  </h4>
+                  <p className="text-black">{testimonial.role}</p>
                 </div>
               </div>
             ))}
@@ -364,8 +381,12 @@ const RMTFileManagementSystem: React.FC = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center gap-12 max-w-5xl mx-auto">
             <div className="flex-1">
-              <div className="w-64 h-64 mx-auto bg-gradient-to-br from-blue-400 to-indigo-600 rounded-full flex items-center justify-center text-white text-8xl">
-                👨‍💼
+              <div className="w-64 h-64 mx-auto bg-gradient-to-br from-blue-400 to-indigo-600 rounded-full flex items-center justify-center text-white text-8xl overflow-hidden">
+                <img
+                  src={DrMurtaza}
+                  alt="Dr. Murtaza Najabat Ali"
+                  className="w-full h-full object-cover"
+                />
               </div>
             </div>
             <div className="flex-1">
@@ -382,7 +403,7 @@ const RMTFileManagementSystem: React.FC = () => {
                 <h4 className="font-semibold text-xl text-gray-800">
                   Dr. Murtaza Najabat Ali
                 </h4>
-                <p className="text-gray-600">CEO, CEng (UK), DIMechE, PE</p>
+                <p className="text-gray-600">CEO, CEng (UK), FIMechE, PE</p>
               </div>
             </div>
           </div>
@@ -399,44 +420,18 @@ const RMTFileManagementSystem: React.FC = () => {
             Join Revive Medical Technologies in revolutionizing medical file
             management with our secure, permission-based system.
           </p>
-          <a
-            href="/login"
+          <Link
+            to="/login"
             className="inline-block bg-white text-blue-600 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-50 transition-colors shadow-lg hover:shadow-xl"
           >
             Start Using The System
-          </a>
+          </Link>
         </div>
       </section>
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-6 md:mb-0">
-              <div className="text-2xl font-bold text-blue-400">RMT</div>
-              <p className="text-gray-400 mt-2">Revive Medical Technologies</p>
-            </div>
-            <div className="flex space-x-6">
-              <a
-                href="#"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                Privacy Policy
-              </a>
-              <a
-                href="#"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                Terms of Service
-              </a>
-              <a
-                href="#"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                Contact
-              </a>
-            </div>
-          </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500">
             <p>
               Developed with <span className="text-red-500">❤️</span> by Mehtab
