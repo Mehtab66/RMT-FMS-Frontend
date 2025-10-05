@@ -37,24 +37,24 @@ const UploadModal: React.FC<UploadModalProps> = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     const input = e.target;
-    
+
     console.log("📁 Files selected:", files?.length);
     console.log("📁 Input attributes:", {
       webkitdirectory: input.webkitdirectory,
       multiple: input.multiple,
-      type: input.type
+      type: input.type,
     });
-    
+
     if (files) {
       Array.from(files).forEach((file, index) => {
         console.log(`📄 File ${index + 1}:`, {
           name: file.name,
           webkitRelativePath: (file as any).webkitRelativePath,
-          size: file.size
+          size: file.size,
         });
       });
     }
-    
+
     setFiles(files);
   };
 
@@ -71,42 +71,65 @@ const UploadModal: React.FC<UploadModalProps> = ({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     // For folder uploads, we need to use the file input with webkitdirectory
     if (uploadType === "folder") {
       // Show a message to use the file input for folders
-      alert("Please click 'Choose Files' and select a folder for folder uploads. Drag & drop doesn't preserve folder structure.");
+      alert(
+        "Please click 'Choose Files' and select a folder for folder uploads. Drag & drop doesn't preserve folder structure."
+      );
       return;
     }
-    
+
     setFiles(e.dataTransfer.files);
   };
 
-  const handleSubmit = async () => {
-    if (!files) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!files || files.length === 0) {
+      alert("Please select a folder to upload.");
+      return;
+    }
+
+    const formData = new FormData();
+    const folderSet = new Set<string>();
+
+    for (const file of Array.from(files)) {
+      formData.append("files", file);
+      formData.append("paths", (file as any).webkitRelativePath);
+
+      // Collect folder paths for empty folder creation
+      const pathParts = (file as any).webkitRelativePath.split("/");
+      pathParts.pop(); // remove filename
+      let cumulativePath = "";
+      for (const part of pathParts) {
+        cumulativePath += (cumulativePath ? "/" : "") + part;
+        folderSet.add(cumulativePath);
+      }
+    }
+
+    // Send unique folder paths (includes empty ones)
+    formData.append("allPaths", JSON.stringify([...folderSet]));
 
     try {
-      const formData = new FormData();
-
-      Array.from(files).forEach((file) => {
-        formData.append("files", file);
+      const res = await fetch("http://localhost:3000/api/files/upload-folder", {
+        method: "POST",
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       });
 
-      if (folderId) formData.append("folder_id", folderId.toString());
-
-      // Use the correct mutation based on upload type
-      if (uploadType === "folder") {
-        await uploadFolderMutation.mutateAsync(formData);
+      const data = await res.json();
+      if (res.ok) {
+        alert("Folder uploaded successfully!");
       } else {
-        await uploadFileMutation.mutateAsync(formData);
+        alert(data.message || "Upload failed");
       }
-
-      // ✅ Reset after successful upload
-      setFiles(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      onClose();
-    } catch (error) {
-      console.error("Upload failed:", error);
+    } catch (err) {
+      console.error(err);
+      alert("Upload failed");
     }
   };
 
@@ -192,7 +215,9 @@ const UploadModal: React.FC<UploadModalProps> = ({
                   : {})}
                 onChange={handleFileChange}
                 className="hidden"
-                title={uploadType === "folder" ? "Select a folder" : "Select files"}
+                title={
+                  uploadType === "folder" ? "Select a folder" : "Select files"
+                }
               />
 
               <FiCloud className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -213,14 +238,14 @@ const UploadModal: React.FC<UploadModalProps> = ({
               ) : (
                 <div>
                   <p className="font-medium text-gray-900">
-                    {uploadType === "file" 
+                    {uploadType === "file"
                       ? "Drag and drop your file(s) here or click to browse"
-                      : "Click 'Choose Files' and select a folder to upload"
-                    }
+                      : "Click 'Choose Files' and select a folder to upload"}
                   </p>
                   {uploadType === "folder" && (
                     <p className="text-sm text-orange-600 mt-1">
-                      ⚠️ Use the file picker for folders (drag & drop doesn't preserve structure)
+                      ⚠️ Use the file picker for folders (drag & drop doesn't
+                      preserve structure)
                     </p>
                   )}
                 </div>
@@ -238,10 +263,15 @@ const UploadModal: React.FC<UploadModalProps> = ({
             </button>
             <button
               onClick={handleSubmit}
-              disabled={!files || uploadFileMutation.isPending || uploadFolderMutation.isPending}
+              disabled={
+                !files ||
+                uploadFileMutation.isPending ||
+                uploadFolderMutation.isPending
+              }
               className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {(uploadFileMutation.isPending || uploadFolderMutation.isPending) ? (
+              {uploadFileMutation.isPending ||
+              uploadFolderMutation.isPending ? (
                 <div className="flex items-center space-x-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   <span>Uploading...</span>

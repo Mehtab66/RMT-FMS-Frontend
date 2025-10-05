@@ -71,10 +71,12 @@ const uploadFolder = async (data: FormData): Promise<{ files: File[] }> => {
   console.log("📋 FormData contents for folder:");
   for (let [key, value] of data.entries()) {
     if (value instanceof File) {
+      console.log(`  ${key}: File - ${value.name} (${value.size} bytes)`);
       console.log(
-        `  ${key}: File - ${value.name} (${value.size} bytes)`
+        `    - webkitRelativePath: ${
+          (value as any).webkitRelativePath || "NOT SET"
+        }`
       );
-      console.log(`    - webkitRelativePath: ${(value as any).webkitRelativePath || 'NOT SET'}`);
     } else {
       console.log(`  ${key}: ${value}`);
     }
