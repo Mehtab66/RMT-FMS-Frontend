@@ -112,24 +112,30 @@ const UploadModal: React.FC<UploadModalProps> = ({
     // Send unique folder paths (includes empty ones)
     formData.append("allPaths", JSON.stringify([...folderSet]));
 
-    try {
-      const res = await fetch("http://localhost:3000/api/files/upload-folder", {
-        method: "POST",
-        body: formData,
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+    // Use the React Query mutation for folder upload
+    if (uploadType === "folder") {
+      uploadFolderMutation.mutate(formData, {
+        onSuccess: () => {
+          alert("Folder uploaded successfully!");
+          onClose(); // Close modal after successful upload
+        },
+        onError: (error: any) => {
+          console.error("Folder upload error:", error);
+          alert(error.message || "Upload failed");
         },
       });
-
-      const data = await res.json();
-      if (res.ok) {
-        alert("Folder uploaded successfully!");
-      } else {
-        alert(data.message || "Upload failed");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Upload failed");
+    } else {
+      // Handle single file uploads
+      uploadFileMutation.mutate(formData, {
+        onSuccess: () => {
+          alert("File uploaded successfully!");
+          onClose(); // Close modal after successful upload
+        },
+        onError: (error: any) => {
+          console.error("File upload error:", error);
+          alert(error.message || "Upload failed");
+        },
+      });
     }
   };
 
@@ -277,7 +283,7 @@ const UploadModal: React.FC<UploadModalProps> = ({
                   <span>Uploading...</span>
                 </div>
               ) : (
-                `Upload`
+                `Upload ${uploadType === "folder" ? "Folder" : "File(s)"}`
               )}
             </button>
           </div>

@@ -284,6 +284,22 @@ const fetchTrashFiles = async (): Promise<File[]> => {
   return response.data.files as File[];
 };
 
+const fetchTrashFilesByFolder = async (folderId: number | null = null): Promise<File[]> => {
+  const url = folderId
+    ? `${API_BASE_URL}/files/trash?folder_id=${folderId}`
+    : `${API_BASE_URL}/files/trash`;
+
+  console.log(`🔍 Frontend fetchTrashFilesByFolder called - folderId: ${folderId}, url: ${url}`);
+
+  const response = await axios.get(url, {
+    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+  });
+  
+  console.log(`📁 Frontend received ${response.data.files.length} trash files:`, response.data.files.map(f => ({ id: f.id, name: f.name, folder_id: f.folder_id })));
+  
+  return response.data.files as File[];
+};
+
 // Favourites navigation functions
 const fetchFavouriteFilesNavigation = async (folderId: number | null = null): Promise<File[]> => {
   const url = folderId
@@ -449,6 +465,13 @@ export const useTrashFiles = () =>
   useQuery({
     queryKey: ["trashFiles"],
     queryFn: fetchTrashFiles,
+    enabled: !!localStorage.getItem("token"),
+  });
+
+export const useTrashFilesByFolder = (folderId: number | null) =>
+  useQuery({
+    queryKey: ["trashFiles", folderId],
+    queryFn: () => fetchTrashFilesByFolder(folderId),
     enabled: !!localStorage.getItem("token"),
   });
 

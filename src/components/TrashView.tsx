@@ -8,26 +8,29 @@ import {
   FiDownload,
   FiKey,
   FiRotateCcw,
+  FiArrowLeft,
 } from "react-icons/fi";
 import FileList from "./FileList";
-import { useTrashFiles, useRestoreFile, usePermanentDeleteFile } from "../hooks/useFiles";
-import { useTrashFolders, useRestoreFolder, usePermanentDeleteFolder } from "../hooks/useFolders";
+import { useTrashFiles, useTrashFilesByFolder, useRestoreFile, usePermanentDeleteFile } from "../hooks/useFiles";
+import { useTrashFolders, useTrashFoldersByParent, useRestoreFolder, usePermanentDeleteFolder } from "../hooks/useFolders";
 import { useUserPermissions } from "../hooks/usePermissions";
 import type { User, Folder } from "../types";
 
 interface TrashViewProps {
   user: User;
+  selectedFolderId: number | null;
   onFolderSelect: (folderId: number | null) => void;
   onAssignPermission: (resourceId: number, resourceType: "folder" | "file") => void;
 }
 
 const TrashView: React.FC<TrashViewProps> = ({
   user,
+  selectedFolderId,
   onFolderSelect,
   onAssignPermission,
 }) => {
-  const { data: trashFiles, isLoading: filesLoading } = useTrashFiles();
-  const { data: trashFolders, isLoading: foldersLoading } = useTrashFolders();
+  const { data: trashFiles, isLoading: filesLoading } = useTrashFilesByFolder(selectedFolderId);
+  const { data: trashFolders, isLoading: foldersLoading } = useTrashFoldersByParent(selectedFolderId);
   const { data: userPermissions } = useUserPermissions();
   
   // Mutation hooks for restore and permanent delete
@@ -54,6 +57,11 @@ const TrashView: React.FC<TrashViewProps> = ({
   const handleFolderClick = (folder: Folder) => {
     console.log("📁 Trash folder clicked:", folder.name, "ID:", folder.id);
     onFolderSelect(folder.id);
+  };
+
+  const handleBackClick = () => {
+    console.log("🔙 Going back to trash root");
+    onFolderSelect(null);
   };
 
   const handleDropdownToggle = (folderId: number, e: React.MouseEvent) => {
@@ -97,14 +105,30 @@ const TrashView: React.FC<TrashViewProps> = ({
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/60 p-6">
       <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 flex items-center">
-            <FiTrash2 className="text-red-500 mr-2" size={24} />
-            Trash
-          </h2>
-          <p className="text-gray-500 mt-1">
-            {totalItems} deleted items
-          </p>
+        <div className="flex items-center space-x-4">
+          {selectedFolderId && (
+            <button
+              onClick={handleBackClick}
+              className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <FiArrowLeft size={18} />
+              <span>Back</span>
+            </button>
+          )}
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 flex items-center">
+              <FiTrash2 className="text-red-500 mr-2" size={24} />
+              Trash
+              {selectedFolderId && (
+                <span className="ml-2 text-sm font-normal text-gray-500">
+                  - Folder Contents
+                </span>
+              )}
+            </h2>
+            <p className="text-gray-500 mt-1">
+              {totalItems} deleted items
+            </p>
+          </div>
         </div>
       </div>
 

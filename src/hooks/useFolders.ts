@@ -85,6 +85,22 @@ const fetchTrashFolders = async (): Promise<Folder[]> => {
   return response.data.folders as Folder[];
 };
 
+const fetchTrashFoldersByParent = async (parentId: number | null = null): Promise<Folder[]> => {
+  const url = parentId
+    ? `${API_BASE_URL}/folders/trash?parent_id=${parentId}`
+    : `${API_BASE_URL}/folders/trash`;
+
+  console.log(`🔍 Frontend fetchTrashFoldersByParent called - parentId: ${parentId}, url: ${url}`);
+
+  const response = await axios.get(url, {
+    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+  });
+  
+  console.log(`📁 Frontend received ${response.data.folders.length} trash folders:`, response.data.folders.map(f => ({ id: f.id, name: f.name, parent_id: f.parent_id })));
+  
+  return response.data.folders as Folder[];
+};
+
 // Favourites navigation functions
 const fetchFavouriteFoldersNavigation = async (parentId: number | null = null): Promise<Folder[]> => {
   const url = parentId
@@ -278,6 +294,13 @@ export const useTrashFolders = () =>
   useQuery({
     queryKey: ["trashFolders"],
     queryFn: fetchTrashFolders,
+    enabled: !!localStorage.getItem("token"),
+  });
+
+export const useTrashFoldersByParent = (parentId: number | null) =>
+  useQuery({
+    queryKey: ["trashFolders", parentId],
+    queryFn: () => fetchTrashFoldersByParent(parentId),
     enabled: !!localStorage.getItem("token"),
   });
 

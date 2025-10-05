@@ -76,12 +76,12 @@ const Dashboard: React.FC = () => {
       icon: FiStar,
       color: "text-yellow-600",
     },
-    { id: "trash", name: "Trash", icon: FiTrash2, color: "text-red-600" },
   ];
 
-  // Add Users section only for super_admin
+  // Add Trash and Users sections only for super_admin
   if (user.role === "super_admin") {
-    navigationItems.splice(3, 0, {
+    navigationItems.push({ id: "trash", name: "Trash", icon: FiTrash2, color: "text-red-600" });
+    navigationItems.push({
       id: "users",
       name: "Users",
       icon: FiUsers,
@@ -293,6 +293,7 @@ const Dashboard: React.FC = () => {
             ) : activeView === "trash" ? (
               <TrashView
                 user={user}
+                selectedFolderId={selectedFolderId}
                 onFolderSelect={setSelectedFolderId}
                 onAssignPermission={(resourceId, resourceType) => {
                   setPermissionResource({ id: resourceId, type: resourceType });
