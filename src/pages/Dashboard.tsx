@@ -140,11 +140,11 @@ const Dashboard: React.FC = () => {
     <div className="flex h-screen bg-gradient-to-br from-gray-50 to-blue-50/30">
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 bg-white/95 backdrop-blur-xl shadow-2xl transform transition-all duration-300 ease-in-out lg:static lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0 w-80" : "-translate-x-full"
+        className={`fixed inset-y-0 left-0 bg-white/95 backdrop-blur-xl shadow-2xl transform transition-all duration-300 ease-in-out lg:static ${
+          sidebarOpen ? "translate-x-0 w-80 lg:block" : "-translate-x-full lg:hidden"
         } ${
           mobileSidebarOpen ? "translate-x-0 w-80" : "-translate-x-full"
-        } lg:block border-r border-gray-200/60`}
+        } border-r border-gray-200/60`}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
@@ -242,6 +242,14 @@ const Dashboard: React.FC = () => {
               >
                 <FiMenu size={24} className="text-gray-600" />
               </button>
+              {!sidebarOpen && (
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="hidden lg:flex p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                >
+                  <FiMenu size={24} className="text-gray-600" />
+                </button>
+              )}
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
                   {activeView === "dashboard" && "Dashboard"}
