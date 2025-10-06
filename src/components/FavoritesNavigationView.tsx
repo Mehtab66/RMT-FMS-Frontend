@@ -145,7 +145,7 @@ const FavoritesNavigationView: React.FC<FavoritesNavigationViewProps> = ({
                       {openDropdownId === folder.id && (
                         <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
                           <div className="py-1">
-                            {user.role === "super_admin" && (
+                            {user.role === "super_admin" && !folder.parent_id && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
