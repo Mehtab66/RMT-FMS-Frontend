@@ -260,17 +260,6 @@ const FileManagement: React.FC<FileManagementProps> = ({
               </button>
             )}
 
-            {user.role === "super_admin" && selectedFolderId && (
-              <button
-                onClick={() =>
-                  handleAssignPermission(selectedFolderId, "folder")
-                }
-                className="flex items-center space-x-2 px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all hover:shadow-md"
-              >
-                <FiKey size={16} />
-                <span>Permissions</span>
-              </button>
-            )}
 
             {user.role === "super_admin" && (
               <button
