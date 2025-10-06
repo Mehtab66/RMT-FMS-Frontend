@@ -61,6 +61,20 @@ const FileManagement: React.FC<FileManagementProps> = ({
   const toggleFolderFavourite = useToggleFolderFavourite();
   const { data: userPermissions } = useUserPermissions();
   
+  // Debug logging
+  console.log("🔍 [FileManagement] Data state:", {
+    filesCount: files?.length || 0,
+    rootFilesCount: rootFiles?.length || 0,
+    rootFoldersCount: rootFolders?.length || 0,
+    subFoldersCount: subFolders?.length || 0,
+    selectedFolderId,
+    filesLoading,
+    rootFilesLoading,
+    rootFoldersLoading,
+    subFoldersLoading,
+    rootFolders: rootFolders?.map(f => ({ id: f.id, name: f.name, parent_id: f.parent_id })) || [],
+    subFolders: subFolders?.map(f => ({ id: f.id, name: f.name, parent_id: f.parent_id })) || []
+  });
 
   // Check if user has download permission for a folder
   const hasDownloadPermission = (folderId: number) => {

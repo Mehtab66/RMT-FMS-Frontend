@@ -121,6 +121,11 @@ const UploadModal: React.FC<UploadModalProps> = ({
 
       // Send unique folder paths (includes empty ones)
       formData.append("allPaths", JSON.stringify([...folderSet]));
+      
+      // Add folderId to formData for folder uploads
+      if (folderId !== null) {
+        formData.append("folderId", folderId.toString());
+      }
 
       // Use the React Query mutation for folder upload
       uploadFolderMutation.mutate(formData, {
@@ -137,6 +142,11 @@ const UploadModal: React.FC<UploadModalProps> = ({
       // Handle single file uploads
       for (const file of Array.from(files)) {
         formData.append("files", file);
+      }
+      
+      // Add folderId to formData for file uploads (backend expects folder_id)
+      if (folderId !== null) {
+        formData.append("folder_id", folderId.toString());
       }
 
       uploadFileMutation.mutate(formData, {

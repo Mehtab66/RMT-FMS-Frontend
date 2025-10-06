@@ -238,7 +238,7 @@ const FileList: React.FC<FileListProps> = ({
                     </button>
                   )}
 
-                  {userRole === "super_admin" && !isTrashView && (
+                  {userRole === "super_admin" && !isTrashView && !file.folder_id && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

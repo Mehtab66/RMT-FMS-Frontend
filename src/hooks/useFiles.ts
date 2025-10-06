@@ -364,13 +364,13 @@ export const useUploadFolder = () => {
       console.log("🎉 FOLDER UPLOAD SUCCESS:", data);
       console.log("🔄 Invalidating queries...");
       
-      // Invalidate all file queries
+      // Invalidate all file and folder queries
       queryClient.invalidateQueries({ queryKey: ["files"] });
       queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
       queryClient.invalidateQueries({ queryKey: ["folders"] });
       queryClient.invalidateQueries({ queryKey: ["rootFolders"] });
       
-      // Invalidate specific folder queries
+      // Invalidate specific folder queries (for nested folders)
       queryClient.invalidateQueries({ queryKey: ["files", null] });
       queryClient.invalidateQueries({ queryKey: ["files", undefined] });
       queryClient.invalidateQueries({ queryKey: ["folders", null] });
@@ -379,6 +379,20 @@ export const useUploadFolder = () => {
       // Force refetch of all data
       queryClient.refetchQueries({ queryKey: ["files"] });
       queryClient.refetchQueries({ queryKey: ["folders"] });
+      queryClient.refetchQueries({ queryKey: ["rootFiles"] });
+      queryClient.refetchQueries({ queryKey: ["rootFolders"] });
+      
+      // Also invalidate all queries to be safe
+      queryClient.invalidateQueries();
+      
+      // Add a small delay to ensure backend has processed the upload
+      setTimeout(() => {
+        console.log("🔄 [Delayed] Refetching queries after upload...");
+        queryClient.refetchQueries({ queryKey: ["files"] });
+        queryClient.refetchQueries({ queryKey: ["folders"] });
+        queryClient.refetchQueries({ queryKey: ["rootFiles"] });
+        queryClient.refetchQueries({ queryKey: ["rootFolders"] });
+      }, 1000);
       
       console.log("✅ All queries invalidated and refetched");
     },
