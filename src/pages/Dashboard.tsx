@@ -14,6 +14,7 @@ import {
   FiStar,
   FiTrash2,
 } from "react-icons/fi";
+import ReviveMedicalTechLogo from "../assets/ReviveMedicalTech.png";
 import FolderTree from "../components/FolderTree";
 import FileManagement from "../components/FileManagement";
 import UserManagementView from "../components/UserManagementView";
@@ -149,15 +150,11 @@ const Dashboard: React.FC = () => {
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200/60">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-lg">R</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-                  Revive Medical
-                </h1>
-                <p className="text-xs text-gray-500">File Management</p>
-              </div>
+              <img 
+                src={ReviveMedicalTechLogo} 
+                alt="Revive Medical Tech" 
+                className="h-12 md:h-16 lg:h-20 xl:h-24 2xl:h-28 w-auto transition-all duration-300"
+              />
             </div>
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
