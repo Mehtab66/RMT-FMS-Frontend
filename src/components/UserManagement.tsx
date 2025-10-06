@@ -30,6 +30,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
 }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   const [role, setRole] = useState<"super_admin" | "user">("user");
   const [showPassword, setShowPassword] = useState(false);
 
@@ -40,15 +41,41 @@ const UserManagement: React.FC<UserManagementProps> = ({
   const isEditingSelf =
     editingUser && currentUser && editingUser.id === currentUser.id;
 
+  // Validate password
+  const validatePassword = (pwd: string): boolean => {
+    const hasUpper = /[A-Z]/.test(pwd);
+    const hasLower = /[a-z]/.test(pwd);
+    const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd);
+    return hasUpper && hasLower && hasSpecial && pwd.length >= 8;
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPassword = e.target.value;
+    setPassword(newPassword);
+    if (newPassword) {
+      if (!validatePassword(newPassword)) {
+        setPasswordError(
+          "Password must contain at least one uppercase letter, one lowercase letter, one special character, and be at least 8 characters long."
+        );
+      } else {
+        setPasswordError("");
+      }
+    } else {
+      setPasswordError("");
+    }
+  };
+
   // Reset form when editingUser changes
   useEffect(() => {
     if (editingUser) {
       setUsername(editingUser.username);
       setPassword("");
+      setPasswordError("");
       setRole(editingUser.role as "super_admin" | "user");
     } else {
       setUsername("");
       setPassword("");
+      setPasswordError("");
       setRole("user");
     }
     setShowPassword(false);
@@ -56,6 +83,10 @@ const UserManagement: React.FC<UserManagementProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (password && passwordError) {
+      return; // Prevent submit if password error
+    }
 
     if (editingUser) {
       // Update existing user
@@ -90,6 +121,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
   const handleClose = () => {
     setUsername("");
     setPassword("");
+    setPasswordError("");
     setRole("user");
     setShowPassword(false);
     onClose();
@@ -189,13 +221,17 @@ const UserManagement: React.FC<UserManagementProps> = ({
                     id="password"
                     type={showPassword ? "text" : "password"}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pr-10 pl-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    onChange={handlePasswordChange}
+                    className={`w-full pr-10 pl-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                      passwordError
+                        ? "border-red-500 focus:border-red-500"
+                        : "border border-gray-200 focus:border-blue-500"
+                    }`}
                     placeholder={
                       editingUser ? "Enter new password" : "Enter password"
                     }
                     required={!editingUser}
-                    minLength={6}
+                    minLength={8}
                   />
                   <button
                     type="button"
@@ -209,6 +245,9 @@ const UserManagement: React.FC<UserManagementProps> = ({
                     )}
                   </button>
                 </div>
+                {passwordError && (
+                  <p className="mt-1 text-sm text-red-600">{passwordError}</p>
+                )}
               </div>
 
               <div>
@@ -258,7 +297,11 @@ const UserManagement: React.FC<UserManagementProps> = ({
               </button>
               <button
                 type="submit"
-                disabled={createUser.isPending || updateUser.isPending}
+                disabled={
+                  createUser.isPending ||
+                  updateUser.isPending ||
+                  !!passwordError
+                }
                 className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {createUser.isPending || updateUser.isPending ? (
