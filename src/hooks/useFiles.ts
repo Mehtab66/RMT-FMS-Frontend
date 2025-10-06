@@ -83,12 +83,17 @@ const uploadFolder = async (data: FormData): Promise<{ files: File[] }> => {
   }
 
   try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+    
     const response = await axios.post(
       `${API_BASE_URL}/files/upload-folder`,
       data,
       {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
         timeout: 300000, // 5 minute timeout for folders

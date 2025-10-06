@@ -60,26 +60,34 @@ const UploadModal: React.FC<UploadModalProps> = ({
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(true);
+    e.stopPropagation();
+    
+    // Only allow drag & drop for files, not folders
+    if (uploadType === "file") {
+      setIsDragging(true);
+      e.dataTransfer.dropEffect = "copy";
+    } else {
+      // For folders, show not allowed cursor
+      e.dataTransfer.dropEffect = "none";
+    }
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
 
-    if (uploadType === "folder") {
-      // For folder uploads, always use file input since drag & drop doesn't preserve structure
-      fileInputRef.current?.click();
-      return;
+    // Only allow drag & drop for files, not folders
+    if (uploadType === "file" && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      setFiles(e.dataTransfer.files);
     }
-
-    // For file uploads, use drag & drop normally
-    setFiles(e.dataTransfer.files);
+    // For folders, do nothing (prevent default behavior)
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,34 +101,39 @@ const UploadModal: React.FC<UploadModalProps> = ({
     const formData = new FormData();
 
     if (uploadType === "folder") {
-      // Validate that we have webkitRelativePath for folder uploads
+      // Check if we have webkitRelativePath for folder structure
       const hasWebkitRelativePath = Array.from(files).some(file => 
         (file as any).webkitRelativePath && (file as any).webkitRelativePath.includes('/')
       );
 
-      if (!hasWebkitRelativePath) {
-        alert("Please use the file picker to select a folder. Drag & drop may not preserve folder structure.");
-        return;
-      }
+      if (hasWebkitRelativePath) {
+        // Full folder structure with webkitRelativePath (file picker)
+        const folderSet = new Set<string>();
 
-      const folderSet = new Set<string>();
+        for (const file of Array.from(files)) {
+          formData.append("files", file);
+          formData.append("paths", (file as any).webkitRelativePath);
 
-      for (const file of Array.from(files)) {
-        formData.append("files", file);
-        formData.append("paths", (file as any).webkitRelativePath);
-
-        // Collect folder paths for empty folder creation
-        const pathParts = (file as any).webkitRelativePath.split("/");
-        pathParts.pop(); // remove filename
-        let cumulativePath = "";
-        for (const part of pathParts) {
-          cumulativePath += (cumulativePath ? "/" : "") + part;
-          folderSet.add(cumulativePath);
+          // Collect folder paths for empty folder creation
+          const pathParts = (file as any).webkitRelativePath.split("/");
+          pathParts.pop(); // remove filename
+          let cumulativePath = "";
+          for (const part of pathParts) {
+            cumulativePath += (cumulativePath ? "/" : "") + part;
+            folderSet.add(cumulativePath);
+          }
         }
-      }
 
-      // Send unique folder paths (includes empty ones)
-      formData.append("allPaths", JSON.stringify([...folderSet]));
+        // Send unique folder paths (includes empty ones)
+        formData.append("allPaths", JSON.stringify([...folderSet]));
+      } else {
+        // Drag & drop folder upload - create a simple folder structure
+        for (const file of Array.from(files)) {
+          formData.append("files", file);
+          formData.append("paths", file.name); // Use filename as path
+        }
+        formData.append("allPaths", JSON.stringify([]));
+      }
       
       // Add folderId to formData for folder uploads
       if (folderId !== null) {
@@ -226,8 +239,10 @@ const UploadModal: React.FC<UploadModalProps> = ({
             {/* Drop Zone */}
             <div
               className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
-                isDragging
+                uploadType === "file" && isDragging
                   ? "border-blue-500 bg-blue-50"
+                  : uploadType === "folder" && isDragging
+                  ? "border-red-500 bg-red-50"
                   : "border-gray-300 hover:border-gray-400"
               }`}
               onDragOver={handleDragOver}
@@ -266,15 +281,28 @@ const UploadModal: React.FC<UploadModalProps> = ({
                 </div>
               ) : (
                 <div>
-                  <p className="font-medium text-gray-900">
-                    {uploadType === "file"
-                      ? "Drag and drop your file(s) here or click to browse"
-                      : "Drag and drop a folder here or click to browse"}
-                  </p>
-                  {uploadType === "folder" && (
-                    <p className="text-sm text-blue-600 mt-1">
-                      ✓ Folder structure will be preserved
-                    </p>
+                  {uploadType === "folder" && isDragging ? (
+                    <div>
+                      <p className="font-medium text-red-600">
+                        ⚠️ Drag & drop not allowed for folders
+                      </p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Please click to browse and select a folder
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {uploadType === "file"
+                          ? "Drag and drop your file(s) here or click to browse"
+                          : "Click to browse and select a folder"}
+                      </p>
+                      {uploadType === "folder" && (
+                        <p className="text-sm text-blue-600 mt-1">
+                          ✓ Folder structure will be preserved
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
               )}

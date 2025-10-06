@@ -119,7 +119,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
             onClose();
           },
           onError: (error: any) => {
-            setError(error.response?.data?.message || "Failed to create user");
+            setError(error.response?.data?.message || "Failed to create user\nthe username already exist");
           },
         }
       );
