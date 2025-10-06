@@ -1,11 +1,12 @@
 // components/UserManagementView.tsx
-import React from "react";
+import React, { useState } from "react";
 import {
   FiUsers,
   FiUserPlus,
   FiRefreshCw,
   FiEdit2,
   FiTrash2,
+  FiX,
 } from "react-icons/fi";
 import UserManagement from "./UserManagement";
 import { useUsers, useDeleteUser } from "../hooks/useAuth";
@@ -37,11 +38,22 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({
   } = useUsers();
   const deleteUser = useDeleteUser();
 
+  // State for delete confirmation modal
+  const [userToDelete, setUserToDelete] = useState<{
+    id: number;
+    username: string;
+  } | null>(null);
+
   const handleDeleteUser = (userId: number, username: string) => {
-    if (window.confirm(`Are you sure you want to delete user "${username}"?`)) {
-      deleteUser.mutate(userId, {
+    setUserToDelete({ id: userId, username });
+  };
+
+  const confirmDeleteUser = () => {
+    if (userToDelete) {
+      deleteUser.mutate(userToDelete.id, {
         onSuccess: () => {
           refetchUsers();
+          setUserToDelete(null);
         },
       });
     }
@@ -49,6 +61,18 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({
 
   const handleEditUser = (userItem: User) => {
     setEditingUser(userItem);
+    setIsUserManagementOpen(true);
+  };
+
+  const handleUserManagementClose = () => {
+    // Reset editing state when closing modal
+    setEditingUser(null);
+    onUserManagementClose();
+  };
+
+  const handleAddUser = () => {
+    // Ensure editingUser is null when adding new user
+    setEditingUser(null);
     setIsUserManagementOpen(true);
   };
 
@@ -71,10 +95,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({
               <span>Refresh</span>
             </button>
             <button
-              onClick={() => {
-                setEditingUser(null);
-                setIsUserManagementOpen(true);
-              }}
+              onClick={handleAddUser}
               className="flex items-center space-x-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all transform hover:scale-105"
             >
               <FiUserPlus size={18} />
@@ -100,10 +121,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({
                   Get started by creating your first user
                 </p>
                 <button
-                  onClick={() => {
-                    setEditingUser(null);
-                    setIsUserManagementOpen(true);
-                  }}
+                  onClick={handleAddUser}
                   className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all font-medium"
                 >
                   Add New User
@@ -172,11 +190,64 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({
       {/* User Management Modal */}
       <UserManagement
         isOpen={isUserManagementOpen}
-        onClose={onUserManagementClose}
+        onClose={handleUserManagementClose}
         onUserCreated={onUserCreated}
         editingUser={editingUser}
         currentUser={user}
       />
+
+      {/* Delete Confirmation Modal */}
+      {userToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+                  <FiTrash2 className="text-white" size={20} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Delete User
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    This action cannot be undone
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setUserToDelete(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <FiX size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to delete user{" "}
+                <strong>"{userToDelete.username}"</strong>? This will
+                permanently remove the user and all their data.
+              </p>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setUserToDelete(null)}
+                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteUser}
+                  disabled={deleteUser.isPending}
+                  className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all font-medium"
+                >
+                  {deleteUser.isPending ? "Deleting..." : "Delete User"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

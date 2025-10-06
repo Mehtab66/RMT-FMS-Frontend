@@ -3,25 +3,19 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiHome,
-  FiFile,
   FiUsers,
   FiLogOut,
-  FiUserPlus,
-  FiUpload,
   FiMenu,
   FiX,
-  FiSearch,
   FiStar,
   FiTrash2,
 } from "react-icons/fi";
 import ReviveMedicalTechLogo from "../assets/ReviveMedicalTech.png";
-import FolderTree from "../components/FolderTree";
 import FileManagement from "../components/FileManagement";
 import UserManagementView from "../components/UserManagementView";
 import FavoritesView from "../components/FavoritesView";
 import FavoritesNavigationView from "../components/FavoritesNavigationView";
 import TrashView from "../components/TrashView";
-import { useFolderTree } from "../hooks/useFolders";
 import type { User } from "../types";
 
 const Dashboard: React.FC = () => {
@@ -40,7 +34,7 @@ const Dashboard: React.FC = () => {
   } | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
-  const { data: folders, isLoading: foldersLoading } = useFolderTree();
+  // const { data: folders, isLoading: foldersLoading } = useFolderTree();
   const navigate = useNavigate();
 
   const user: User = JSON.parse(localStorage.getItem("user") || "{}");
@@ -64,7 +58,7 @@ const Dashboard: React.FC = () => {
     } else {
       // Going into a folder - add current folder to history
       if (selectedFolderId !== null) {
-        setNavigationHistory(prev => [...prev, selectedFolderId]);
+        setNavigationHistory((prev) => [...prev, selectedFolderId]);
       }
       setSelectedFolderId(folderId);
     }
@@ -74,7 +68,7 @@ const Dashboard: React.FC = () => {
     if (navigationHistory.length > 0) {
       // Go back to previous folder in history
       const previousFolderId = navigationHistory[navigationHistory.length - 1];
-      setNavigationHistory(prev => prev.slice(0, -1));
+      setNavigationHistory((prev) => prev.slice(0, -1));
       setSelectedFolderId(previousFolderId);
     } else {
       // No history - go to root
@@ -109,7 +103,12 @@ const Dashboard: React.FC = () => {
 
   // Add Trash and Users sections only for super_admin
   if (user.role === "super_admin") {
-    navigationItems.push({ id: "trash", name: "Trash", icon: FiTrash2, color: "text-red-600" });
+    navigationItems.push({
+      id: "trash",
+      name: "Trash",
+      icon: FiTrash2,
+      color: "text-red-600",
+    });
     navigationItems.push({
       id: "users",
       name: "Users",
@@ -141,7 +140,9 @@ const Dashboard: React.FC = () => {
       {/* Sidebar */}
       <div
         className={`fixed inset-y-0 left-0 bg-white/95 backdrop-blur-xl shadow-2xl transform transition-all duration-300 ease-in-out lg:static ${
-          sidebarOpen ? "translate-x-0 w-80 lg:block" : "-translate-x-full lg:hidden"
+          sidebarOpen
+            ? "translate-x-0 w-80 lg:block"
+            : "-translate-x-full lg:hidden"
         } ${
           mobileSidebarOpen ? "translate-x-0 w-80" : "-translate-x-full"
         } border-r border-gray-200/60`}
@@ -150,9 +151,9 @@ const Dashboard: React.FC = () => {
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200/60">
             <div className="flex items-center space-x-3">
-              <img 
-                src={ReviveMedicalTechLogo} 
-                alt="Revive Medical Tech" 
+              <img
+                src={ReviveMedicalTechLogo}
+                alt="Revive Medical Tech"
                 className="h-12 md:h-16 lg:h-20 xl:h-24 2xl:h-28 w-auto transition-all duration-300"
               />
             </div>
@@ -170,7 +171,6 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
 
-       
           {/* Navigation */}
           <div className="flex-1 px-3">
             <nav className="space-y-1">
@@ -265,7 +265,7 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center space-x-3">
+            {/* <div className="flex items-center space-x-3">
               {activeView === "users" && (
                 <button
                   onClick={() => {
@@ -278,7 +278,7 @@ const Dashboard: React.FC = () => {
                   <span>Add User</span>
                 </button>
               )}
-            </div>
+            </div> */}
           </div>
         </header>
 
@@ -303,7 +303,10 @@ const Dashboard: React.FC = () => {
                   onFolderSelect={handleFolderSelect}
                   onBackNavigation={handleBackNavigation}
                   onAssignPermission={(resourceId, resourceType) => {
-                    setPermissionResource({ id: resourceId, type: resourceType });
+                    setPermissionResource({
+                      id: resourceId,
+                      type: resourceType,
+                    });
                     setIsPermissionModalOpen(true);
                   }}
                 />
@@ -312,7 +315,10 @@ const Dashboard: React.FC = () => {
                   user={user}
                   onFolderSelect={handleFolderSelect}
                   onAssignPermission={(resourceId, resourceType) => {
-                    setPermissionResource({ id: resourceId, type: resourceType });
+                    setPermissionResource({
+                      id: resourceId,
+                      type: resourceType,
+                    });
                     setIsPermissionModalOpen(true);
                   }}
                 />

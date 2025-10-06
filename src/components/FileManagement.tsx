@@ -16,7 +16,15 @@ import {
 import FileList from "./FileList";
 import UploadModal from "./UploadModal";
 import PermissionModal from "./PermissionModal";
-import { useCreateFolder, useRootFolders, useFoldersByParent, useUpdateFolder, useDeleteFolder, useToggleFolderFavourite } from "../hooks/useFolders";
+import CreateFolderModal from "../components/CreateFolderModal"; // New import
+import {
+  useCreateFolder,
+  useRootFolders,
+  useFoldersByParent,
+  useUpdateFolder,
+  useDeleteFolder,
+  useToggleFolderFavourite,
+} from "../hooks/useFolders";
 import { useFiles, useRootFiles, useDownloadFolder } from "../hooks/useFiles";
 import { useUserPermissions } from "../hooks/usePermissions";
 import type { User, Folder } from "../types";
@@ -53,14 +61,19 @@ const FileManagement: React.FC<FileManagementProps> = ({
   const { data: files, isLoading: filesLoading } = useFiles(selectedFolderId);
   const { data: rootFiles, isLoading: rootFilesLoading } = useRootFiles();
   const { data: rootFolders, isLoading: rootFoldersLoading } = useRootFolders();
-  const { data: subFolders, isLoading: subFoldersLoading } = useFoldersByParent(selectedFolderId);
+  const { data: subFolders, isLoading: subFoldersLoading } =
+    useFoldersByParent(selectedFolderId);
   const createFolder = useCreateFolder();
   const updateFolder = useUpdateFolder();
   const deleteFolder = useDeleteFolder();
   const downloadFolder = useDownloadFolder();
   const toggleFolderFavourite = useToggleFolderFavourite();
   const { data: userPermissions } = useUserPermissions();
-  
+
+  // State for create folder modal
+  const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] =
+    React.useState(false);
+
   // Debug logging
   console.log("🔍 [FileManagement] Data state:", {
     filesCount: files?.length || 0,
@@ -72,56 +85,70 @@ const FileManagement: React.FC<FileManagementProps> = ({
     rootFilesLoading,
     rootFoldersLoading,
     subFoldersLoading,
-    rootFolders: rootFolders?.map(f => ({ id: f.id, name: f.name, parent_id: f.parent_id })) || [],
-    subFolders: subFolders?.map(f => ({ id: f.id, name: f.name, parent_id: f.parent_id })) || []
+    rootFolders:
+      rootFolders?.map((f) => ({
+        id: f.id,
+        name: f.name,
+        parent_id: f.parent_id,
+      })) || [],
+    subFolders:
+      subFolders?.map((f) => ({
+        id: f.id,
+        name: f.name,
+        parent_id: f.parent_id,
+      })) || [],
   });
 
   // Check if user has download permission for a folder
   const hasDownloadPermission = (folderId: number) => {
     if (!userPermissions) return false;
-    
+
     // Check if folder is owned by user (owners have all permissions)
     const allFolders = [...(rootFolders || []), ...(subFolders || [])];
-    const folder = allFolders.find(f => f.id === folderId);
+    const folder = allFolders.find((f) => f.id === folderId);
     if (folder && user.id && folder.created_by === user.id) {
       return true;
     }
-    
+
     // Check direct permission for this folder
     const directPermission = userPermissions.find(
       (perm) => perm.resource_id === folderId && perm.resource_type === "folder"
     );
-    
+
     if (directPermission) {
       return directPermission.can_download || false;
     }
-    
+
     // Check inherited permission from parent folder
     if (folder && folder.parent_id) {
       const parentPermission = userPermissions.find(
-        (perm) => perm.resource_id === folder.parent_id && perm.resource_type === "folder"
+        (perm) =>
+          perm.resource_id === folder.parent_id &&
+          perm.resource_type === "folder"
       );
-      
+
       if (parentPermission) {
         return parentPermission.can_download || false;
       }
     }
-    
+
     return false;
   };
-  
+
   // State for dropdown management
-  const [openDropdownId, setOpenDropdownId] = React.useState<number | null>(null);
+  const [openDropdownId, setOpenDropdownId] = React.useState<number | null>(
+    null
+  );
 
   // Close dropdown when clicking outside
   React.useEffect(() => {
     const handleClickOutside = () => {
       setOpenDropdownId(null);
     };
-    
+
     if (openDropdownId) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
     }
   }, [openDropdownId]);
 
@@ -131,13 +158,17 @@ const FileManagement: React.FC<FileManagementProps> = ({
   };
 
   const handleCreateFolder = () => {
-    const name = prompt("Enter folder name");
-    if (name) {
+    setIsCreateFolderModalOpen(true);
+  };
+
+  const handleCreateFolderSubmit = (name: string) => {
+    if (name.trim()) {
       createFolder.mutate(
-        { name, parent_id: selectedFolderId },
+        { name: name.trim(), parent_id: selectedFolderId },
         {
           onSuccess: () => {
             // Folder created successfully - no navigation needed
+            setIsCreateFolderModalOpen(false);
           },
         }
       );
@@ -154,7 +185,7 @@ const FileManagement: React.FC<FileManagementProps> = ({
 
   // Get the items to display based on whether we're in root or a specific folder
   const displayFiles = selectedFolderId ? files : rootFiles;
-  const displayFolders = selectedFolderId ? (subFolders || []) : rootFolders; // Show subfolders when inside a folder
+  const displayFolders = selectedFolderId ? subFolders || [] : rootFolders; // Show subfolders when inside a folder
   const isLoading = selectedFolderId
     ? filesLoading || subFoldersLoading
     : rootFilesLoading || rootFoldersLoading;
@@ -168,7 +199,6 @@ const FileManagement: React.FC<FileManagementProps> = ({
     displayFolders?.filter((folder) =>
       folder.name.toLowerCase().includes(searchQuery.toLowerCase())
     ) || [];
-
 
   // Calculate total size for display
   const totalSize = filteredFiles.reduce(
@@ -191,7 +221,11 @@ const FileManagement: React.FC<FileManagementProps> = ({
   };
 
   const handleDeleteFolder = (folderId: number, folderName: string) => {
-    if (window.confirm(`Are you sure you want to delete "${folderName}"? This action cannot be undone.`)) {
+    if (
+      window.confirm(
+        `Are you sure you want to delete "${folderName}"? This action cannot be undone.`
+      )
+    ) {
       deleteFolder.mutate(folderId);
     }
     setOpenDropdownId(null);
@@ -207,12 +241,14 @@ const FileManagement: React.FC<FileManagementProps> = ({
     setOpenDropdownId(null);
   };
 
-  const handleToggleFolderFavourite = (folderId: number, e: React.MouseEvent) => {
+  const handleToggleFolderFavourite = (
+    folderId: number,
+    e: React.MouseEvent
+  ) => {
     e.stopPropagation();
     toggleFolderFavourite.mutate(folderId);
     setOpenDropdownId(null);
   };
-
 
   return (
     <>
@@ -260,7 +296,6 @@ const FileManagement: React.FC<FileManagementProps> = ({
               </button>
             )}
 
-
             {user.role === "super_admin" && (
               <button
                 onClick={() => setIsUploadModalOpen(true)}
@@ -301,20 +336,29 @@ const FileManagement: React.FC<FileManagementProps> = ({
                         </h4>
                         <p className="text-sm text-gray-500">Folder</p>
                       </div>
-                      
+
                       {/* Heart icon */}
                       <button
-                        onClick={(e) => handleToggleFolderFavourite(folder.id, e)}
+                        onClick={(e) =>
+                          handleToggleFolderFavourite(folder.id, e)
+                        }
                         className={`p-2 rounded-xl transition-colors mr-2 ${
                           folder.is_faviourite
-                            ? 'text-red-500 hover:text-red-600 hover:bg-red-50'
-                            : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                            ? "text-red-500 hover:text-red-600 hover:bg-red-50"
+                            : "text-gray-400 hover:text-red-500 hover:bg-red-50"
                         }`}
-                        title={folder.is_faviourite ? "Remove from favorites" : "Add to favorites"}
+                        title={
+                          folder.is_faviourite
+                            ? "Remove from favorites"
+                            : "Add to favorites"
+                        }
                       >
-                        <FiHeart size={16} fill={folder.is_faviourite ? 'currentColor' : 'none'} />
+                        <FiHeart
+                          size={16}
+                          fill={folder.is_faviourite ? "currentColor" : "none"}
+                        />
                       </button>
-                      
+
                       {/* 3-dot dropdown menu */}
                       <div className="relative">
                         <button
@@ -324,59 +368,69 @@ const FileManagement: React.FC<FileManagementProps> = ({
                         >
                           <FiMoreVertical size={16} />
                         </button>
-                        
+
                         {openDropdownId === folder.id && (
                           <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
                             <div className="py-1">
-                              {user.role === "super_admin" && !folder.parent_id && (
+                              {user.role === "super_admin" &&
+                                !folder.parent_id && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleAssignPermission(
+                                        folder.id,
+                                        "folder"
+                                      );
+                                      setOpenDropdownId(null);
+                                    }}
+                                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                  >
+                                    <FiKey className="mr-3" size={16} />
+                                    Permissions
+                                  </button>
+                                )}
+                              {hasDownloadPermission(folder.id) && (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleAssignPermission(folder.id, "folder");
-                                    setOpenDropdownId(null);
+                                    handleDownloadFolder(folder.id);
                                   }}
                                   className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                                 >
-                                  <FiKey className="mr-3" size={16} />
-                                  Permissions
+                                  <FiDownload className="mr-3" size={16} />
+                                  Download
                                 </button>
                               )}
-              {hasDownloadPermission(folder.id) && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDownloadFolder(folder.id);
-                  }}
-                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  <FiDownload className="mr-3" size={16} />
-                  Download
-                </button>
-              )}
-              {user.role === "super_admin" && (
-                <>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRenameFolder(folder.id, folder.name);
-                    }}
-                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    <FiEdit3 className="mr-3" size={16} />
-                    Rename
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteFolder(folder.id, folder.name);
-                    }}
-                    className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                  >
-                    <FiTrash2 className="mr-3" size={16} />
-                    Delete
-                  </button>
-                </>
-              )}
+                              {user.role === "super_admin" && (
+                                <>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRenameFolder(
+                                        folder.id,
+                                        folder.name
+                                      );
+                                    }}
+                                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                  >
+                                    <FiEdit3 className="mr-3" size={16} />
+                                    Rename
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteFolder(
+                                        folder.id,
+                                        folder.name
+                                      );
+                                    }}
+                                    className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                                  >
+                                    <FiTrash2 className="mr-3" size={16} />
+                                    Delete
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </div>
                         )}
@@ -446,6 +500,14 @@ const FileManagement: React.FC<FileManagementProps> = ({
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         folderId={selectedFolderId}
+      />
+
+      {/* Create Folder Modal */}
+      <CreateFolderModal
+        isOpen={isCreateFolderModalOpen}
+        onClose={() => setIsCreateFolderModalOpen(false)}
+        onSubmit={handleCreateFolderSubmit}
+        parentFolderId={selectedFolderId}
       />
 
       {/* Permission Modal */}

@@ -1,6 +1,7 @@
 // hooks/usePermissions.ts
 import { useMutation, useQuery } from "@tanstack/react-query";
 import axios from "axios";
+import { toast } from "react-toastify";
 import type { Permission, PermissionsResponse, ApiResponse } from "../types";
 
 const API_BASE_URL = "http://localhost:3000/api";
@@ -51,6 +52,12 @@ const getUserPermissions = async () => {
 export const useAssignPermission = () =>
   useMutation({
     mutationFn: assignPermission,
+    onSuccess: (data) => {
+      toast.success(data.message || "Permission assigned successfully");
+    },
+    onError: () => {
+      toast.error("Failed to assign permission");
+    },
   });
 
 export const useResourcePermissions = (
@@ -73,4 +80,10 @@ export const useUserPermissions = () =>
 export const useRemovePermission = () =>
   useMutation({
     mutationFn: removePermission,
+    onSuccess: (data) => {
+      toast.success(data.message || "Permission removed successfully");
+    },
+    onError: () => {
+      toast.error("Failed to remove permission");
+    },
   });
