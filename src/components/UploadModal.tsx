@@ -72,15 +72,13 @@ const UploadModal: React.FC<UploadModalProps> = ({
     e.preventDefault();
     setIsDragging(false);
 
-    // For folder uploads, we need to use the file input with webkitdirectory
     if (uploadType === "folder") {
-      // Show a message to use the file input for folders
-      alert(
-        "Please click 'Choose Files' and select a folder for folder uploads. Drag & drop doesn't preserve folder structure."
-      );
+      // For folder uploads, always use file input since drag & drop doesn't preserve structure
+      fileInputRef.current?.click();
       return;
     }
 
+    // For file uploads, use drag & drop normally
     setFiles(e.dataTransfer.files);
   };
 
@@ -88,32 +86,43 @@ const UploadModal: React.FC<UploadModalProps> = ({
     e.preventDefault();
 
     if (!files || files.length === 0) {
-      alert("Please select a folder to upload.");
+      alert(`Please select ${uploadType === "folder" ? "a folder" : "file(s)"} to upload.`);
       return;
     }
 
     const formData = new FormData();
-    const folderSet = new Set<string>();
 
-    for (const file of Array.from(files)) {
-      formData.append("files", file);
-      formData.append("paths", (file as any).webkitRelativePath);
-
-      // Collect folder paths for empty folder creation
-      const pathParts = (file as any).webkitRelativePath.split("/");
-      pathParts.pop(); // remove filename
-      let cumulativePath = "";
-      for (const part of pathParts) {
-        cumulativePath += (cumulativePath ? "/" : "") + part;
-        folderSet.add(cumulativePath);
-      }
-    }
-
-    // Send unique folder paths (includes empty ones)
-    formData.append("allPaths", JSON.stringify([...folderSet]));
-
-    // Use the React Query mutation for folder upload
     if (uploadType === "folder") {
+      // Validate that we have webkitRelativePath for folder uploads
+      const hasWebkitRelativePath = Array.from(files).some(file => 
+        (file as any).webkitRelativePath && (file as any).webkitRelativePath.includes('/')
+      );
+
+      if (!hasWebkitRelativePath) {
+        alert("Please use the file picker to select a folder. Drag & drop may not preserve folder structure.");
+        return;
+      }
+
+      const folderSet = new Set<string>();
+
+      for (const file of Array.from(files)) {
+        formData.append("files", file);
+        formData.append("paths", (file as any).webkitRelativePath);
+
+        // Collect folder paths for empty folder creation
+        const pathParts = (file as any).webkitRelativePath.split("/");
+        pathParts.pop(); // remove filename
+        let cumulativePath = "";
+        for (const part of pathParts) {
+          cumulativePath += (cumulativePath ? "/" : "") + part;
+          folderSet.add(cumulativePath);
+        }
+      }
+
+      // Send unique folder paths (includes empty ones)
+      formData.append("allPaths", JSON.stringify([...folderSet]));
+
+      // Use the React Query mutation for folder upload
       uploadFolderMutation.mutate(formData, {
         onSuccess: () => {
           alert("Folder uploaded successfully!");
@@ -126,6 +135,10 @@ const UploadModal: React.FC<UploadModalProps> = ({
       });
     } else {
       // Handle single file uploads
+      for (const file of Array.from(files)) {
+        formData.append("files", file);
+      }
+
       uploadFileMutation.mutate(formData, {
         onSuccess: () => {
           alert("File uploaded successfully!");
@@ -246,12 +259,11 @@ const UploadModal: React.FC<UploadModalProps> = ({
                   <p className="font-medium text-gray-900">
                     {uploadType === "file"
                       ? "Drag and drop your file(s) here or click to browse"
-                      : "Click 'Choose Files' and select a folder to upload"}
+                      : "Drag and drop a folder here or click to browse"}
                   </p>
                   {uploadType === "folder" && (
-                    <p className="text-sm text-orange-600 mt-1">
-                      ⚠️ Use the file picker for folders (drag & drop doesn't
-                      preserve structure)
+                    <p className="text-sm text-blue-600 mt-1">
+                      ✓ Folder structure will be preserved
                     </p>
                   )}
                 </div>

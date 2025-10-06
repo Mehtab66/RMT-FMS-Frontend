@@ -20,6 +20,7 @@ interface TrashViewProps {
   user: User;
   selectedFolderId: number | null;
   onFolderSelect: (folderId: number | null) => void;
+  onBackNavigation?: () => void;
   onAssignPermission: (resourceId: number, resourceType: "folder" | "file") => void;
 }
 
@@ -27,6 +28,7 @@ const TrashView: React.FC<TrashViewProps> = ({
   user,
   selectedFolderId,
   onFolderSelect,
+  onBackNavigation,
   onAssignPermission,
 }) => {
   const { data: trashFiles, isLoading: filesLoading } = useTrashFilesByFolder(selectedFolderId);
@@ -60,8 +62,12 @@ const TrashView: React.FC<TrashViewProps> = ({
   };
 
   const handleBackClick = () => {
-    console.log("🔙 Going back to trash root");
-    onFolderSelect(null);
+    console.log("🔙 Going back to previous folder");
+    if (onBackNavigation) {
+      onBackNavigation();
+    } else {
+      onFolderSelect(null);
+    }
   };
 
   const handleDropdownToggle = (folderId: number, e: React.MouseEvent) => {

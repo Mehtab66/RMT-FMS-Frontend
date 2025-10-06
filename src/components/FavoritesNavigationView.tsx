@@ -21,6 +21,7 @@ interface FavoritesNavigationViewProps {
   user: User;
   selectedFolderId: number | null;
   onFolderSelect: (folderId: number | null) => void;
+  onBackNavigation?: () => void;
   onAssignPermission: (resourceId: number, resourceType: "folder" | "file") => void;
 }
 
@@ -28,6 +29,7 @@ const FavoritesNavigationView: React.FC<FavoritesNavigationViewProps> = ({
   user,
   selectedFolderId,
   onFolderSelect,
+  onBackNavigation,
   onAssignPermission,
 }) => {
   const { data: files, isLoading: filesLoading } = useFavouriteFilesNavigation(selectedFolderId);
@@ -55,8 +57,12 @@ const FavoritesNavigationView: React.FC<FavoritesNavigationViewProps> = ({
   };
 
   const handleBackClick = () => {
-    console.log("🔙 Going back to favourites root");
-    onFolderSelect(null);
+    console.log("🔙 Going back to previous folder");
+    if (onBackNavigation) {
+      onBackNavigation();
+    } else {
+      onFolderSelect(null);
+    }
   };
 
   const handleDropdownToggle = (folderId: number, e: React.MouseEvent) => {

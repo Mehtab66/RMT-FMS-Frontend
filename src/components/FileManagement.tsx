@@ -11,6 +11,7 @@ import {
   FiTrash2,
   FiDownload,
   FiHeart,
+  FiArrowLeft,
 } from "react-icons/fi";
 import FileList from "./FileList";
 import UploadModal from "./UploadModal";
@@ -33,6 +34,7 @@ interface FileManagementProps {
     resource: { id: number; type: "folder" | "file" } | null
   ) => void;
   onFolderSelect: (folderId: number | null) => void;
+  onBackNavigation?: () => void;
 }
 
 const FileManagement: React.FC<FileManagementProps> = ({
@@ -46,6 +48,7 @@ const FileManagement: React.FC<FileManagementProps> = ({
   permissionResource,
   setPermissionResource,
   onFolderSelect,
+  onBackNavigation,
 }) => {
   const { data: files, isLoading: filesLoading } = useFiles(selectedFolderId);
   const { data: rootFiles, isLoading: rootFilesLoading } = useRootFiles();
@@ -161,6 +164,7 @@ const FileManagement: React.FC<FileManagementProps> = ({
   const totalItems = filteredFiles.length + filteredFolders.length;
 
   const handleBackToRoot = () => {
+    // Always go to dashboard root, never use navigation history
     onFolderSelect(null);
   };
 
@@ -200,33 +204,47 @@ const FileManagement: React.FC<FileManagementProps> = ({
     <>
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/60 p-6">
         <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">
-              {selectedFolderId
-                ? `Folder Contents`
-                : "Dashboard - All Files & Folders"}
-            </h2>
-            <p className="text-gray-500 mt-1">
-              {totalItems} items • {totalSize.toLocaleString()} bytes
-              {selectedFolderId && (
-                <button
-                  onClick={handleBackToRoot}
-                  className="ml-4 text-blue-600 hover:text-blue-700 text-sm font-medium"
-                >
-                  ← Back to Dashboard
-                </button>
-              )}
-            </p>
+          <div className="flex items-center space-x-4">
+            {selectedFolderId && onBackNavigation && (
+              <button
+                onClick={onBackNavigation}
+                className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Go back to previous folder"
+              >
+                <FiArrowLeft size={18} />
+                <span>Back</span>
+              </button>
+            )}
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">
+                {selectedFolderId
+                  ? `Folder Contents`
+                  : "Dashboard - All Files & Folders"}
+              </h2>
+              <p className="text-gray-500 mt-1">
+                {totalItems} items • {totalSize.toLocaleString()} bytes
+                {selectedFolderId && (
+                  <button
+                    onClick={handleBackToRoot}
+                    className="ml-4 text-blue-600 hover:text-blue-700 text-sm font-medium"
+                  >
+                    ← Back to Dashboard
+                  </button>
+                )}
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center space-x-3">
-            <button
-              onClick={handleCreateFolder}
-              className="flex items-center space-x-2 px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all hover:shadow-md"
-            >
-              <FiFolderPlus size={16} />
-              <span>New Folder</span>
-            </button>
+            {user.role === "super_admin" && (
+              <button
+                onClick={handleCreateFolder}
+                className="flex items-center space-x-2 px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all hover:shadow-md"
+              >
+                <FiFolderPlus size={16} />
+                <span>Create Folder</span>
+              </button>
+            )}
 
             {user.role === "super_admin" && selectedFolderId && (
               <button
@@ -240,13 +258,15 @@ const FileManagement: React.FC<FileManagementProps> = ({
               </button>
             )}
 
-            <button
-              onClick={() => setIsUploadModalOpen(true)}
-              className="flex items-center space-x-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all transform hover:scale-105"
-            >
-              <FiUpload size={18} />
-              <span>Upload File</span>
-            </button>
+            {user.role === "super_admin" && (
+              <button
+                onClick={() => setIsUploadModalOpen(true)}
+                className="flex items-center space-x-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all transform hover:scale-105"
+              >
+                <FiUpload size={18} />
+                <span>Upload</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -396,20 +416,22 @@ const FileManagement: React.FC<FileManagementProps> = ({
                     ? "Upload files to this folder or create subfolders to organize your content."
                     : "Get started by uploading your first file or creating a new folder."}
                 </p>
-                <div className="flex justify-center space-x-4">
-                  <button
-                    onClick={handleCreateFolder}
-                    className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-medium"
-                  >
-                    Create Folder
-                  </button>
-                  <button
-                    onClick={() => setIsUploadModalOpen(true)}
-                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all font-medium"
-                  >
-                    Upload File
-                  </button>
-                </div>
+                {user.role === "super_admin" && (
+                  <div className="flex justify-center space-x-4">
+                    <button
+                      onClick={handleCreateFolder}
+                      className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-medium"
+                    >
+                      Create Folder
+                    </button>
+                    <button
+                      onClick={() => setIsUploadModalOpen(true)}
+                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all font-medium"
+                    >
+                      Upload File
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -32,6 +32,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"super_admin" | "user">("user");
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
 
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
@@ -56,6 +57,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(""); // Clear previous errors
 
     if (editingUser) {
       // Update existing user
@@ -71,6 +73,9 @@ const UserManagement: React.FC<UserManagementProps> = ({
             onUserCreated();
             onClose();
           },
+          onError: (error: any) => {
+            setError(error.response?.data?.message || "Failed to update user");
+          },
         }
       );
     } else {
@@ -82,6 +87,9 @@ const UserManagement: React.FC<UserManagementProps> = ({
             onUserCreated();
             onClose();
           },
+          onError: (error: any) => {
+            setError(error.response?.data?.message || "Failed to create user");
+          },
         }
       );
     }
@@ -92,6 +100,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
     setPassword("");
     setRole("user");
     setShowPassword(false);
+    setError("");
     onClose();
   };
 
@@ -128,6 +137,25 @@ const UserManagement: React.FC<UserManagementProps> = ({
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                <div className="flex items-start space-x-3">
+                  <FiInfo
+                    className="text-red-600 mt-0.5 flex-shrink-0"
+                    size={16}
+                  />
+                  <div>
+                    <p className="text-sm text-red-800 font-medium">
+                      Error
+                    </p>
+                    <p className="text-xs text-red-700 mt-1">
+                      {error}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {isEditingSelf && (
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                 <div className="flex items-start space-x-3">

@@ -25,6 +25,7 @@ import type { User } from "../types";
 
 const Dashboard: React.FC = () => {
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
+  const [navigationHistory, setNavigationHistory] = useState<number[]>([]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
   const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
@@ -51,6 +52,33 @@ const Dashboard: React.FC = () => {
   const handleUserManagementClose = () => {
     setIsUserManagementOpen(false);
     setEditingUser(null);
+  };
+
+  // Navigation functions with history
+  const handleFolderSelect = (folderId: number | null) => {
+    if (folderId === null) {
+      // Going back to root - clear history
+      setSelectedFolderId(null);
+      setNavigationHistory([]);
+    } else {
+      // Going into a folder - add current folder to history
+      if (selectedFolderId !== null) {
+        setNavigationHistory(prev => [...prev, selectedFolderId]);
+      }
+      setSelectedFolderId(folderId);
+    }
+  };
+
+  const handleBackNavigation = () => {
+    if (navigationHistory.length > 0) {
+      // Go back to previous folder in history
+      const previousFolderId = navigationHistory[navigationHistory.length - 1];
+      setNavigationHistory(prev => prev.slice(0, -1));
+      setSelectedFolderId(previousFolderId);
+    } else {
+      // No history - go to root
+      setSelectedFolderId(null);
+    }
   };
 
   const handleUserCreated = () => {
@@ -191,12 +219,14 @@ const Dashboard: React.FC = () => {
                   {user.username}
                 </p>
                 <p className="text-xs text-gray-500 capitalize">{user.role}</p>
-                <button
-                  onClick={() => handleEditUser(user)}
-                  className="text-xs text-blue-600 hover:text-blue-700 mt-1"
-                >
-                  Edit my details
-                </button>
+                {user.role === "super_admin" && (
+                  <button
+                    onClick={() => handleEditUser(user)}
+                    className="text-xs text-blue-600 hover:text-blue-700 mt-1"
+                  >
+                    Edit my details
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -243,15 +273,6 @@ const Dashboard: React.FC = () => {
                   <span>Add User</span>
                 </button>
               )}
-              {activeView !== "users" && activeView !== "trash" && activeView !== "favorites" && (
-                <button
-                  onClick={() => setIsUploadModalOpen(true)}
-                  className="flex items-center space-x-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all transform hover:scale-105"
-                >
-                  <FiUpload size={18} />
-                  <span>Upload</span>
-                </button>
-              )}
             </div>
           </div>
         </header>
@@ -274,7 +295,8 @@ const Dashboard: React.FC = () => {
                 <FavoritesNavigationView
                   user={user}
                   selectedFolderId={selectedFolderId}
-                  onFolderSelect={setSelectedFolderId}
+                  onFolderSelect={handleFolderSelect}
+                  onBackNavigation={handleBackNavigation}
                   onAssignPermission={(resourceId, resourceType) => {
                     setPermissionResource({ id: resourceId, type: resourceType });
                     setIsPermissionModalOpen(true);
@@ -283,7 +305,7 @@ const Dashboard: React.FC = () => {
               ) : (
                 <FavoritesView
                   user={user}
-                  onFolderSelect={setSelectedFolderId}
+                  onFolderSelect={handleFolderSelect}
                   onAssignPermission={(resourceId, resourceType) => {
                     setPermissionResource({ id: resourceId, type: resourceType });
                     setIsPermissionModalOpen(true);
@@ -294,7 +316,8 @@ const Dashboard: React.FC = () => {
               <TrashView
                 user={user}
                 selectedFolderId={selectedFolderId}
-                onFolderSelect={setSelectedFolderId}
+                onFolderSelect={handleFolderSelect}
+                onBackNavigation={handleBackNavigation}
                 onAssignPermission={(resourceId, resourceType) => {
                   setPermissionResource({ id: resourceId, type: resourceType });
                   setIsPermissionModalOpen(true);
@@ -311,7 +334,8 @@ const Dashboard: React.FC = () => {
                 setIsPermissionModalOpen={setIsPermissionModalOpen}
                 permissionResource={permissionResource}
                 setPermissionResource={setPermissionResource}
-                onFolderSelect={setSelectedFolderId} // Add this line
+                onFolderSelect={handleFolderSelect}
+                onBackNavigation={handleBackNavigation}
               />
             )}
           </div>
