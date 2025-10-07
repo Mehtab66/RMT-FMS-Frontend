@@ -42,7 +42,14 @@ const FileList: React.FC<FileListProps> = ({
   const permanentDeleteFile = usePermanentDeleteFile();
   const { data: userPermissions } = useUserPermissions();
   
-
+  // Debug: Log file data to see if favourited field is present
+  React.useEffect(() => {
+    if (files && files.length > 0) {
+      console.log("🔍 [FileList] Files data:", files);
+      console.log("🔍 [FileList] First file favourited:", files[0]?.favourited);
+    }
+  }, [files]);
+  
   // Check if user has download permission for a file
   const hasDownloadPermission = (fileId: number) => {
     if (!userPermissions) return false;
@@ -88,7 +95,14 @@ const FileList: React.FC<FileListProps> = ({
 
   const handleToggleFavourite = (fileId: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    toggleFavourite.mutate(fileId);
+    toggleFavourite.mutate(fileId, {
+      onSuccess: (data) => {
+        console.log("✅ File toggle success:", data);
+      },
+      onError: (error) => {
+        console.error("❌ File toggle error:", error);
+      }
+    });
   };
 
   const handleRestore = (fileId: number, fileName: string) => {
@@ -213,15 +227,22 @@ const FileList: React.FC<FileListProps> = ({
                   {/* Heart icon for favourites */}
                   {showFavouriteToggle && (
                     <button
-                      onClick={(e) => handleToggleFavourite(file.id, e)}
+                      onClick={(e) => {
+                        console.log("🖱️ Heart clicked for file:", file.id, "favourited:", file.favourited);
+                        handleToggleFavourite(file.id, e);
+                      }}
                       className={`p-2 rounded-xl transition-colors ${
-                        file.is_faviourite
+                        file.favourited
                           ? 'text-red-500 hover:text-red-600 hover:bg-red-50'
                           : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
                       }`}
-                      title={file.is_faviourite ? "Remove from favorites" : "Add to favorites"}
+                      title={file.favourited ? "Remove from favorites" : "Add to favorites"}
                     >
-                      <FiHeart size={18} fill={file.is_faviourite ? 'currentColor' : 'none'} />
+                      {file.favourited ? (
+                        <FiHeart size={18} fill="currentColor" />
+                      ) : (
+                        <FiHeart size={18} fill="none" stroke="currentColor" strokeWidth="2" />
+                      )}
                     </button>
                   )}
 

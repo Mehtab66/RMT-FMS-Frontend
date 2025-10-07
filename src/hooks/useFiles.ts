@@ -268,11 +268,13 @@ const deleteFile = async (id: number): Promise<{ message: string }> => {
 };
 
 // Favourites and Trash functions
-const toggleFileFavourite = async (id: number): Promise<{ id: number; is_faviourite: boolean }> => {
+const toggleFileFavourite = async (id: number): Promise<{ id: number; favourited: boolean }> => {
+  console.log("🔄 [toggleFileFavourite] Making API call for file:", id);
   const response = await axios.post(`${API_BASE_URL}/files/${id}/favourite/toggle`, {}, {
     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
   });
-  return response.data as { id: number; is_faviourite: boolean };
+  console.log("📥 [toggleFileFavourite] Raw response:", response.data);
+  return response.data as { id: number; favourited: boolean };
 };
 
 const fetchFavouriteFiles = async (): Promise<File[]> => {
@@ -464,11 +466,34 @@ export const useToggleFileFavourite = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: toggleFileFavourite,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["files"] });
+    onSuccess: (data) => {
+      console.log("🎯 [useToggleFileFavourite] Success data received:", data);
+      console.log("🎯 [useToggleFileFavourite] Data type:", typeof data);
+      console.log("🎯 [useToggleFileFavourite] Data keys:", Object.keys(data));
+      
+      // Update the specific file in all queries with the new favourited state
+      const updateFileInQuery = (old: any) => {
+        if (!old) return old;
+        return old.map((file: any) => 
+          file.id === data.id 
+            ? { ...file, favourited: data.favourited }
+            : file
+        );
+      };
+
+      // Update all possible file query keys
+      queryClient.setQueryData(["files"], updateFileInQuery);
+      queryClient.setQueryData(["rootFiles"], updateFileInQuery);
+      queryClient.setQueryData(["favouriteFiles"], updateFileInQuery);
+      queryClient.setQueryData(["trashFiles"], updateFileInQuery);
+      
+      // Update files queries with specific parent IDs
+      queryClient.setQueryData(["files", null], updateFileInQuery);
+      queryClient.setQueryData(["files", undefined], updateFileInQuery);
+      
+      // Also invalidate to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
-      queryClient.invalidateQueries({ queryKey: ["favouriteFiles"] });
-      queryClient.invalidateQueries({ queryKey: ["trashFiles"] });
+      queryClient.invalidateQueries({ queryKey: ["files"] });
     },
   });
 };

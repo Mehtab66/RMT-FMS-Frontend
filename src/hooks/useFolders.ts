@@ -64,11 +64,13 @@ const deleteFolder = async (id: number): Promise<{ message: string }> => {
 };
 
 // Favourites and Trash functions
-const toggleFolderFavourite = async (id: number): Promise<{ id: number; is_faviourite: boolean }> => {
+const toggleFolderFavourite = async (id: number): Promise<{ id: number; favourited: boolean }> => {
+  console.log("🔄 [toggleFolderFavourite] Making API call for folder:", id);
   const response = await axios.post(`${API_BASE_URL}/folders/${id}/favourite/toggle`, {}, {
     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
   });
-  return response.data as { id: number; is_faviourite: boolean };
+  console.log("📥 [toggleFolderFavourite] Raw response:", response.data);
+  return response.data as { id: number; favourited: boolean };
 };
 
 const fetchFavouriteFolders = async (): Promise<Folder[]> => {
@@ -156,12 +158,9 @@ const uploadFolder = async (formData: FormData): Promise<{ files: any[] }> => {
 // hooks/useFolders.ts - Update the fetchRootFolders function
 
 const fetchRootFolders = async (): Promise<Folder[]> => {
-  console.log("fetchRootFolders called");
-
   const response = await axios.get(`${API_BASE_URL}/folders/root`, {
     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
   });
-  console.log("fetchRootFolders response:", response);
 
   return response.data.folders as Folder[];
 };
@@ -274,11 +273,34 @@ export const useToggleFolderFavourite = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: toggleFolderFavourite,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["folders"] });
+    onSuccess: (data) => {
+      console.log("🎯 [useToggleFolderFavourite] Success data received:", data);
+      console.log("🎯 [useToggleFolderFavourite] Data type:", typeof data);
+      console.log("🎯 [useToggleFolderFavourite] Data keys:", Object.keys(data));
+      
+      // Update the specific folder in all queries with the new favourited state
+      const updateFolderInQuery = (old: any) => {
+        if (!old) return old;
+        return old.map((folder: any) => 
+          folder.id === data.id 
+            ? { ...folder, favourited: data.favourited }
+            : folder
+        );
+      };
+
+      // Update all possible folder query keys
+      queryClient.setQueryData(["folders"], updateFolderInQuery);
+      queryClient.setQueryData(["rootFolders"], updateFolderInQuery);
+      queryClient.setQueryData(["favouriteFolders"], updateFolderInQuery);
+      queryClient.setQueryData(["trashFolders"], updateFolderInQuery);
+      
+      // Update folders queries with specific parent IDs
+      queryClient.setQueryData(["folders", null], updateFolderInQuery);
+      queryClient.setQueryData(["folders", undefined], updateFolderInQuery);
+      
+      // Also invalidate to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ["rootFolders"] });
-      queryClient.invalidateQueries({ queryKey: ["favouriteFolders"] });
-      queryClient.invalidateQueries({ queryKey: ["trashFolders"] });
+      queryClient.invalidateQueries({ queryKey: ["folders"] });
     },
   });
 };

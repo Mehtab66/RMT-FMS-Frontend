@@ -32,6 +32,58 @@ const FavoritesView: React.FC<FavoritesViewProps> = ({
   const toggleFolderFavourite = useToggleFolderFavourite();
   const { data: userPermissions } = useUserPermissions();
 
+  // Extract all files from nested folders
+  const allNestedFiles = React.useMemo(() => {
+    if (!favouriteFolders) return [];
+    
+    const nestedFiles: any[] = [];
+    
+    const extractFilesFromFolder = (folder: any) => {
+      // Add files from this folder
+      if (folder.nested_files && folder.nested_files.length > 0) {
+        nestedFiles.push(...folder.nested_files);
+      }
+      
+      // Add files from nested folders recursively
+      if (folder.nested_folders && folder.nested_folders.length > 0) {
+        folder.nested_folders.forEach((nestedFolder: any) => {
+          extractFilesFromFolder(nestedFolder);
+        });
+      }
+    };
+    
+    favouriteFolders.forEach(extractFilesFromFolder);
+    return nestedFiles;
+  }, [favouriteFolders]);
+
+  // Combine direct favourite files with nested files
+  const allFiles = React.useMemo(() => {
+    const directFiles = favouriteFiles || [];
+    const nestedFiles = allNestedFiles || [];
+    
+    // Remove duplicates based on file ID
+    const seenIds = new Set();
+    const uniqueFiles = [];
+    
+    // Add direct files first
+    directFiles.forEach(file => {
+      if (!seenIds.has(file.id)) {
+        seenIds.add(file.id);
+        uniqueFiles.push({ ...file, favourited: true });
+      }
+    });
+    
+    // Add nested files
+    nestedFiles.forEach(file => {
+      if (!seenIds.has(file.id)) {
+        seenIds.add(file.id);
+        uniqueFiles.push({ ...file, favourited: true });
+      }
+    });
+    
+    return uniqueFiles;
+  }, [favouriteFiles, allNestedFiles]);
+
   // State for dropdown management
   const [openDropdownId, setOpenDropdownId] = React.useState<number | null>(null);
 
@@ -64,7 +116,7 @@ const FavoritesView: React.FC<FavoritesViewProps> = ({
   };
 
   const isLoading = filesLoading || foldersLoading;
-  const totalItems = (favouriteFiles?.length || 0) + (favouriteFolders?.length || 0);
+  const totalItems = (allFiles?.length || 0) + (favouriteFolders?.length || 0);
 
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/60 p-6">
@@ -155,13 +207,13 @@ const FavoritesView: React.FC<FavoritesViewProps> = ({
           )}
 
           {/* Favourite Files Section */}
-          {favouriteFiles && favouriteFiles.length > 0 && (
+          {allFiles && allFiles.length > 0 && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 {favouriteFolders && favouriteFolders.length > 0 ? "Favorite Files" : "All Favorites"}
               </h3>
               <FileList
-                files={favouriteFiles}
+                files={allFiles}
                 onAssignPermission={onAssignPermission}
                 userRole={user.role}
                 userId={user.id}

@@ -61,21 +61,6 @@ const FileManagement: React.FC<FileManagementProps> = ({
   const toggleFolderFavourite = useToggleFolderFavourite();
   const { data: userPermissions } = useUserPermissions();
   
-  // Debug logging
-  console.log("🔍 [FileManagement] Data state:", {
-    filesCount: files?.length || 0,
-    rootFilesCount: rootFiles?.length || 0,
-    rootFoldersCount: rootFolders?.length || 0,
-    subFoldersCount: subFolders?.length || 0,
-    selectedFolderId,
-    filesLoading,
-    rootFilesLoading,
-    rootFoldersLoading,
-    subFoldersLoading,
-    rootFolders: rootFolders?.map(f => ({ id: f.id, name: f.name, parent_id: f.parent_id })) || [],
-    subFolders: subFolders?.map(f => ({ id: f.id, name: f.name, parent_id: f.parent_id })) || []
-  });
-
   // Check if user has download permission for a folder
   const hasDownloadPermission = (folderId: number) => {
     if (!userPermissions) return false;
@@ -159,6 +144,14 @@ const FileManagement: React.FC<FileManagementProps> = ({
     ? filesLoading || subFoldersLoading
     : rootFilesLoading || rootFoldersLoading;
 
+  // Debug: Log folder data to see if favourited field is present
+  React.useEffect(() => {
+    if (displayFolders && displayFolders.length > 0) {
+      console.log("🔍 [FileManagement] Folders data:", displayFolders);
+      console.log("🔍 [FileManagement] First folder favourited:", displayFolders[0]?.favourited);
+    }
+  }, [displayFolders]);
+
   const filteredFiles =
     displayFiles?.filter((file) =>
       file.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -209,7 +202,14 @@ const FileManagement: React.FC<FileManagementProps> = ({
 
   const handleToggleFolderFavourite = (folderId: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    toggleFolderFavourite.mutate(folderId);
+    toggleFolderFavourite.mutate(folderId, {
+      onSuccess: (data) => {
+        console.log("✅ Folder toggle success:", data);
+      },
+      onError: (error) => {
+        console.error("❌ Folder toggle error:", error);
+      }
+    });
     setOpenDropdownId(null);
   };
 
@@ -304,15 +304,22 @@ const FileManagement: React.FC<FileManagementProps> = ({
                       
                       {/* Heart icon */}
                       <button
-                        onClick={(e) => handleToggleFolderFavourite(folder.id, e)}
+                        onClick={(e) => {
+                          console.log("🖱️ Heart clicked for folder:", folder.id, "favourited:", folder.favourited);
+                          handleToggleFolderFavourite(folder.id, e);
+                        }}
                         className={`p-2 rounded-xl transition-colors mr-2 ${
-                          folder.is_faviourite
+                          folder.favourited
                             ? 'text-red-500 hover:text-red-600 hover:bg-red-50'
                             : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
                         }`}
-                        title={folder.is_faviourite ? "Remove from favorites" : "Add to favorites"}
+                        title={folder.favourited ? "Remove from favorites" : "Add to favorites"}
                       >
-                        <FiHeart size={16} fill={folder.is_faviourite ? 'currentColor' : 'none'} />
+                        {folder.favourited ? (
+                          <FiHeart size={16} fill="currentColor" />
+                        ) : (
+                          <FiHeart size={16} fill="none" stroke="currentColor" strokeWidth="2" />
+                        )}
                       </button>
                       
                       {/* 3-dot dropdown menu */}
