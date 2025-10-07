@@ -1,6 +1,7 @@
 // hooks/useFiles.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+import { toast } from "react-toastify";
 import type { File, FilesResponse, ApiResponse } from "../types";
 
 const API_BASE_URL = "http://localhost:3000/api";
@@ -11,14 +12,23 @@ const fetchFiles = async (folderId: number | null = null): Promise<File[]> => {
     ? `${API_BASE_URL}/files?folder_id=${folderId}`
     : `${API_BASE_URL}/files`;
 
-  console.log(`🔍 Frontend fetchFiles called - folderId: ${folderId}, url: ${url}`);
+  console.log(
+    `🔍 Frontend fetchFiles called - folderId: ${folderId}, url: ${url}`
+  );
 
   const response = await axios.get(url, {
     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
   });
-  
-  console.log(`📁 Frontend received ${response.data.files.length} files:`, response.data.files.map(f => ({ id: f.id, name: f.name, folder_id: f.folder_id })));
-  
+
+  console.log(
+    `📁 Frontend received ${response.data.files.length} files:`,
+    response.data.files.map((f) => ({
+      id: f.id,
+      name: f.name,
+      folder_id: f.folder_id,
+    }))
+  );
+
   return response.data.files as File[];
 };
 
@@ -87,7 +97,7 @@ const uploadFolder = async (data: FormData): Promise<{ files: File[] }> => {
     if (!token) {
       throw new Error("No authentication token found");
     }
-    
+
     const response = await axios.post(
       `${API_BASE_URL}/files/upload-folder`,
       data,
@@ -117,7 +127,6 @@ const uploadFolder = async (data: FormData): Promise<{ files: File[] }> => {
     throw error;
   }
 };
-
 
 const downloadFile = async (id: number): Promise<void> => {
   console.log(`📥 Downloading file ${id}...`);
@@ -150,7 +159,7 @@ const downloadFile = async (id: number): Promise<void> => {
     link.setAttribute("download", filename);
     document.body.appendChild(link);
     link.click();
-    
+
     // Clean up after a short delay
     setTimeout(() => {
       link.remove();
@@ -160,7 +169,7 @@ const downloadFile = async (id: number): Promise<void> => {
     console.log("✅ Download completed:", filename);
   } catch (error: any) {
     console.error("❌ Download failed:", error);
-    
+
     // Handle specific error cases
     if (error.response?.status === 404) {
       throw new Error("File not found");
@@ -205,7 +214,7 @@ const downloadFolder = async (id: number): Promise<void> => {
     link.setAttribute("download", filename);
     document.body.appendChild(link);
     link.click();
-    
+
     // Clean up after a short delay
     setTimeout(() => {
       link.remove();
@@ -215,12 +224,16 @@ const downloadFolder = async (id: number): Promise<void> => {
     console.log("✅ Folder download completed:", filename);
   } catch (error: any) {
     console.error("❌ Folder download failed:", error);
-    
+
     // Handle specific error cases
     if (error.response?.status === 404) {
-      throw new Error("Folder not found or you don't have permission to access it");
+      throw new Error(
+        "Folder not found or you don't have permission to access it"
+      );
     } else if (error.response?.status === 403) {
-      throw new Error("Permission denied - you don't have download permission for this folder");
+      throw new Error(
+        "Permission denied - you don't have download permission for this folder"
+      );
     } else if (error.response?.status === 500) {
       throw new Error("Server error occurred");
     } else {
@@ -228,6 +241,7 @@ const downloadFolder = async (id: number): Promise<void> => {
     }
   }
 };
+
 // hooks/useFiles.ts - Add this function
 const fetchRootFiles = async (): Promise<File[]> => {
   const response = await axios.get(`${API_BASE_URL}/files/root`, {
@@ -243,6 +257,7 @@ export const useRootFiles = () =>
     queryFn: fetchRootFiles,
     enabled: !!localStorage.getItem("token"),
   });
+
 const updateFile = async ({
   id,
   name,
@@ -268,13 +283,17 @@ const deleteFile = async (id: number): Promise<{ message: string }> => {
 };
 
 // Favourites and Trash functions
-const toggleFileFavourite = async (id: number): Promise<{ id: number; favourited: boolean }> => {
-  console.log("🔄 [toggleFileFavourite] Making API call for file:", id);
-  const response = await axios.post(`${API_BASE_URL}/files/${id}/favourite/toggle`, {}, {
-    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-  });
-  console.log("📥 [toggleFileFavourite] Raw response:", response.data);
-  return response.data as { id: number; favourited: boolean };
+const toggleFileFavourite = async (
+  id: number
+): Promise<{ id: number; is_faviourite: boolean }> => {
+  const response = await axios.post(
+    `${API_BASE_URL}/files/${id}/favourite/toggle`,
+    {},
+    {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    }
+  );
+  return response.data as { id: number; is_faviourite: boolean };
 };
 
 const fetchFavouriteFiles = async (): Promise<File[]> => {
@@ -291,48 +310,76 @@ const fetchTrashFiles = async (): Promise<File[]> => {
   return response.data.files as File[];
 };
 
-const fetchTrashFilesByFolder = async (folderId: number | null = null): Promise<File[]> => {
+const fetchTrashFilesByFolder = async (
+  folderId: number | null = null
+): Promise<File[]> => {
   const url = folderId
     ? `${API_BASE_URL}/files/trash?folder_id=${folderId}`
     : `${API_BASE_URL}/files/trash`;
 
-  console.log(`🔍 Frontend fetchTrashFilesByFolder called - folderId: ${folderId}, url: ${url}`);
+  console.log(
+    `🔍 Frontend fetchTrashFilesByFolder called - folderId: ${folderId}, url: ${url}`
+  );
 
   const response = await axios.get(url, {
     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
   });
-  
-  console.log(`📁 Frontend received ${response.data.files.length} trash files:`, response.data.files.map(f => ({ id: f.id, name: f.name, folder_id: f.folder_id })));
-  
+
+  console.log(
+    `📁 Frontend received ${response.data.files.length} trash files:`,
+    response.data.files.map((f) => ({
+      id: f.id,
+      name: f.name,
+      folder_id: f.folder_id,
+    }))
+  );
+
   return response.data.files as File[];
 };
 
 // Favourites navigation functions
-const fetchFavouriteFilesNavigation = async (folderId: number | null = null): Promise<File[]> => {
+const fetchFavouriteFilesNavigation = async (
+  folderId: number | null = null
+): Promise<File[]> => {
   const url = folderId
     ? `${API_BASE_URL}/files/favourites/navigate?folder_id=${folderId}`
     : `${API_BASE_URL}/files/favourites/navigate`;
 
-  console.log(`🔍 Frontend fetchFavouriteFilesNavigation called - folderId: ${folderId}, url: ${url}`);
+  console.log(
+    `🔍 Frontend fetchFavouriteFilesNavigation called - folderId: ${folderId}, url: ${url}`
+  );
 
   const response = await axios.get(url, {
     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
   });
-  
-  console.log(`📁 Frontend received ${response.data.files.length} favourite files:`, response.data.files.map(f => ({ id: f.id, name: f.name, folder_id: f.folder_id })));
-  
+
+  console.log(
+    `📁 Frontend received ${response.data.files.length} favourite files:`,
+    response.data.files.map((f) => ({
+      id: f.id,
+      name: f.name,
+      folder_id: f.folder_id,
+    }))
+  );
+
   return response.data.files as File[];
 };
 
 // Restore and permanent delete functions
 const restoreFile = async (id: number): Promise<{ message: string }> => {
-  const response = await axios.post(`${API_BASE_URL}/files/${id}/restore`, {}, {
-    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-  });
+  const response = await axios.post(
+    `${API_BASE_URL}/files/${id}/restore`,
+    {},
+    {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    }
+  );
   return response.data as { message: string };
 };
 
-const permanentDeleteFile = async (id: number): Promise<{ message: string }> => {
+const permanentDeleteFile = async (
+  id: number
+): Promise<{ message: string }> => {
   const response = await axios.delete(`${API_BASE_URL}/files/${id}/permanent`, {
     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
   });
@@ -351,14 +398,16 @@ export const useUploadFile = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: uploadFile,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["files"] });
       queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
       // Invalidate all file queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ["files", undefined] });
+      toast.success(`File "${data.name}" uploaded successfully!`);
     },
     onError: (error: any) => {
       console.error("Upload mutation error:", error);
+      toast.error(error.response?.data?.message || "Failed to upload file");
     },
   });
 };
@@ -370,28 +419,28 @@ export const useUploadFolder = () => {
     onSuccess: (data) => {
       console.log("🎉 FOLDER UPLOAD SUCCESS:", data);
       console.log("🔄 Invalidating queries...");
-      
+
       // Invalidate all file and folder queries
       queryClient.invalidateQueries({ queryKey: ["files"] });
       queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
       queryClient.invalidateQueries({ queryKey: ["folders"] });
       queryClient.invalidateQueries({ queryKey: ["rootFolders"] });
-      
+
       // Invalidate specific folder queries (for nested folders)
       queryClient.invalidateQueries({ queryKey: ["files", null] });
       queryClient.invalidateQueries({ queryKey: ["files", undefined] });
       queryClient.invalidateQueries({ queryKey: ["folders", null] });
       queryClient.invalidateQueries({ queryKey: ["folders", undefined] });
-      
+
       // Force refetch of all data
       queryClient.refetchQueries({ queryKey: ["files"] });
       queryClient.refetchQueries({ queryKey: ["folders"] });
       queryClient.refetchQueries({ queryKey: ["rootFiles"] });
       queryClient.refetchQueries({ queryKey: ["rootFolders"] });
-      
+
       // Also invalidate all queries to be safe
       queryClient.invalidateQueries();
-      
+
       // Add a small delay to ensure backend has processed the upload
       setTimeout(() => {
         console.log("🔄 [Delayed] Refetching queries after upload...");
@@ -400,38 +449,43 @@ export const useUploadFolder = () => {
         queryClient.refetchQueries({ queryKey: ["rootFiles"] });
         queryClient.refetchQueries({ queryKey: ["rootFolders"] });
       }, 1000);
-      
+
       console.log("✅ All queries invalidated and refetched");
+      toast.success(
+        `Folder uploaded successfully! ${data.files.length} files added.`
+      );
     },
     onError: (error: any) => {
       console.error("❌ FOLDER UPLOAD ERROR:", error);
       console.error("❌ Error details:", error.message);
       console.error("❌ Error response:", error.response?.data);
       console.error("❌ Error status:", error.response?.status);
-      alert(`Upload failed: ${error.message || 'Unknown error'}`);
+      toast.error(error.response?.data?.message || "Failed to upload folder");
     },
   });
 };
 
-
-
 export const useDownloadFile = () =>
   useMutation({
     mutationFn: downloadFile,
+    onSuccess: () => {
+      toast.success("File downloaded successfully!");
+    },
     onError: (error: any) => {
       console.error("Download mutation error:", error);
-      // Show user-friendly error message
-      alert("Download failed. Please try again.");
+      toast.error(error.response?.data?.message || "Failed to download file");
     },
   });
 
 export const useDownloadFolder = () =>
   useMutation({
     mutationFn: downloadFolder,
+    onSuccess: () => {
+      toast.success("Folder downloaded successfully!");
+    },
     onError: (error: any) => {
       console.error("Folder download mutation error:", error);
-      // Show user-friendly error message
-      alert("Folder download failed. Please try again.");
+      toast.error(error.response?.data?.message || "Failed to download folder");
     },
   });
 
@@ -439,11 +493,15 @@ export const useUpdateFile = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: updateFile,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["files"] });
       queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
       // Invalidate all file queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ["files", undefined] });
+      toast.success(`File renamed to "${data.name}" successfully!`);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Failed to update file");
     },
   });
 };
@@ -457,6 +515,10 @@ export const useDeleteFile = () => {
       queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
       // Invalidate all file queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ["files", undefined] });
+      toast.success("File moved to trash successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Failed to delete file");
     },
   });
 };
@@ -467,33 +529,21 @@ export const useToggleFileFavourite = () => {
   return useMutation({
     mutationFn: toggleFileFavourite,
     onSuccess: (data) => {
-      console.log("🎯 [useToggleFileFavourite] Success data received:", data);
-      console.log("🎯 [useToggleFileFavourite] Data type:", typeof data);
-      console.log("🎯 [useToggleFileFavourite] Data keys:", Object.keys(data));
-      
-      // Update the specific file in all queries with the new favourited state
-      const updateFileInQuery = (old: any) => {
-        if (!old) return old;
-        return old.map((file: any) => 
-          file.id === data.id 
-            ? { ...file, favourited: data.favourited }
-            : file
-        );
-      };
-
-      // Update all possible file query keys
-      queryClient.setQueryData(["files"], updateFileInQuery);
-      queryClient.setQueryData(["rootFiles"], updateFileInQuery);
-      queryClient.setQueryData(["favouriteFiles"], updateFileInQuery);
-      queryClient.setQueryData(["trashFiles"], updateFileInQuery);
-      
-      // Update files queries with specific parent IDs
-      queryClient.setQueryData(["files", null], updateFileInQuery);
-      queryClient.setQueryData(["files", undefined], updateFileInQuery);
-      
-      // Also invalidate to ensure fresh data
-      queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
       queryClient.invalidateQueries({ queryKey: ["files"] });
+      queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
+      queryClient.invalidateQueries({ queryKey: ["favouriteFiles"] });
+      queryClient.invalidateQueries({ queryKey: ["trashFiles"] });
+
+      if (data.is_faviourite) {
+        toast.success("File added to favorites!");
+      } else {
+        toast.success("File removed from favorites!");
+      }
+    },
+    onError: (error: any) => {
+      toast.error(
+        error.response?.data?.message || "Failed to update favorites"
+      );
     },
   });
 };
@@ -537,6 +587,10 @@ export const useRestoreFile = () => {
       queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
       queryClient.invalidateQueries({ queryKey: ["favouriteFiles"] });
       queryClient.invalidateQueries({ queryKey: ["trashFiles"] });
+      toast.success("File restored successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Failed to restore file");
     },
   });
 };
@@ -550,6 +604,12 @@ export const usePermanentDeleteFile = () => {
       queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
       queryClient.invalidateQueries({ queryKey: ["favouriteFiles"] });
       queryClient.invalidateQueries({ queryKey: ["trashFiles"] });
+      toast.success("File permanently deleted!");
+    },
+    onError: (error: any) => {
+      toast.error(
+        error.response?.data?.message || "Failed to delete file permanently"
+      );
     },
   });
 };

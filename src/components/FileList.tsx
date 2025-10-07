@@ -1,7 +1,13 @@
 // components/FileList.tsx
 import React from "react";
 import type { File } from "../types";
-import { useDownloadFile, useDeleteFile, useToggleFileFavourite, useRestoreFile, usePermanentDeleteFile } from "../hooks/useFiles";
+import {
+  useDownloadFile,
+  useDeleteFile,
+  useToggleFileFavourite,
+  useRestoreFile,
+  usePermanentDeleteFile,
+} from "../hooks/useFiles";
 import { useUserPermissions } from "../hooks/usePermissions";
 import {
   FiDownload,
@@ -41,45 +47,38 @@ const FileList: React.FC<FileListProps> = ({
   const restoreFile = useRestoreFile();
   const permanentDeleteFile = usePermanentDeleteFile();
   const { data: userPermissions } = useUserPermissions();
-  
-  // Debug: Log file data to see if favourited field is present
-  React.useEffect(() => {
-    if (files && files.length > 0) {
-      console.log("🔍 [FileList] Files data:", files);
-      console.log("🔍 [FileList] First file favourited:", files[0]?.favourited);
-    }
-  }, [files]);
-  
+
   // Check if user has download permission for a file
   const hasDownloadPermission = (fileId: number) => {
     if (!userPermissions) return false;
-    
+
     // Check if file is owned by user (owners have all permissions)
-    const file = files.find(f => f.id === fileId);
+    const file = files.find((f) => f.id === fileId);
     if (file && userId && file.created_by === userId) {
       return true;
     }
-    
+
     // Check direct permission for this file
     const directPermission = userPermissions.find(
       (perm) => perm.resource_id === fileId && perm.resource_type === "file"
     );
-    
+
     if (directPermission) {
       return directPermission.can_download || false;
     }
-    
+
     // Check inherited permission from parent folder
     if (file && file.folder_id) {
       const folderPermission = userPermissions.find(
-        (perm) => perm.resource_id === file.folder_id && perm.resource_type === "folder"
+        (perm) =>
+          perm.resource_id === file.folder_id && perm.resource_type === "folder"
       );
-      
+
       if (folderPermission) {
         return folderPermission.can_download || false;
       }
     }
-    
+
     return false;
   };
 
@@ -120,7 +119,11 @@ const FileList: React.FC<FileListProps> = ({
   };
 
   const handlePermanentDelete = (fileId: number, fileName: string) => {
-    if (window.confirm(`Are you sure you want to permanently delete "${fileName}"? This action cannot be undone.`)) {
+    if (
+      window.confirm(
+        `Are you sure you want to permanently delete "${fileName}"? This action cannot be undone.`
+      )
+    ) {
       permanentDeleteFile.mutate(fileId, {
         onSuccess: () => {
           console.log("✅ File permanently deleted");
@@ -133,10 +136,54 @@ const FileList: React.FC<FileListProps> = ({
     }
   };
 
-  const handleFileClick = (file: File) => {
-    // Open file in new tab
-    const fileUrl = `http://localhost:3000/api/files/download/${file.id}`;
-    window.open(fileUrl, '_blank');
+  const handleFileClick = async (file: File) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("No token found");
+        return;
+      }
+
+      const fileUrl = `http://localhost:3000/api/files/download/${file.id}`; // ✅ use your backend URL
+
+      const response = await fetch(fileUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`, // ✅ send token in header
+        },
+      });
+
+      if (!response.ok) {
+        console.error("Failed to download file");
+        return;
+      }
+
+      // Get filename from headers or fallback
+      const disposition = response.headers.get("content-disposition");
+      let filename = file.name;
+      if (disposition && disposition.includes("filename=")) {
+        filename = disposition
+          .split("filename=")[1]
+          .replace(/['"]/g, "")
+          .trim();
+      }
+
+      // Convert to blob and trigger download
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename; // ✅ triggers direct download
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      // Cleanup blob URL
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("Error downloading file:", error);
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -195,7 +242,7 @@ const FileList: React.FC<FileListProps> = ({
                 key={file.id}
                 onClick={() => handleFileClick(file)}
                 className={`flex items-center space-x-4 p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all duration-200 cursor-pointer ${
-                  isTrashView ? 'opacity-75' : ''
+                  isTrashView ? "opacity-75" : ""
                 }`}
               >
                 <div className={`p-3 rounded-xl ${fileColor}`}>
@@ -232,17 +279,20 @@ const FileList: React.FC<FileListProps> = ({
                         handleToggleFavourite(file.id, e);
                       }}
                       className={`p-2 rounded-xl transition-colors ${
-                        file.favourited
-                          ? 'text-red-500 hover:text-red-600 hover:bg-red-50'
-                          : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                        file.is_faviourite
+                          ? "text-red-500 hover:text-red-600 hover:bg-red-50"
+                          : "text-gray-400 hover:text-red-500 hover:bg-red-50"
                       }`}
-                      title={file.favourited ? "Remove from favorites" : "Add to favorites"}
+                      title={
+                        file.is_faviourite
+                          ? "Remove from favorites"
+                          : "Add to favorites"
+                      }
                     >
-                      {file.favourited ? (
-                        <FiHeart size={18} fill="currentColor" />
-                      ) : (
-                        <FiHeart size={18} fill="none" stroke="currentColor" strokeWidth="2" />
-                      )}
+                      <FiHeart
+                        size={18}
+                        fill={file.is_faviourite ? "currentColor" : "none"}
+                      />
                     </button>
                   )}
 
@@ -259,18 +309,20 @@ const FileList: React.FC<FileListProps> = ({
                     </button>
                   )}
 
-                  {userRole === "super_admin" && !isTrashView && !file.folder_id && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onAssignPermission(file.id, "file");
-                      }}
-                      className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors"
-                      title="Set Permissions"
-                    >
-                      <FiKey size={18} />
-                    </button>
-                  )}
+                  {userRole === "super_admin" &&
+                    !isTrashView &&
+                    !file.folder_id && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAssignPermission(file.id, "file");
+                        }}
+                        className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors"
+                        title="Set Permissions"
+                      >
+                        <FiKey size={18} />
+                      </button>
+                    )}
 
                   {/* Trash view actions */}
                   {isTrashView && (
@@ -311,7 +363,6 @@ const FileList: React.FC<FileListProps> = ({
                       <FiTrash2 size={18} />
                     </button>
                   )}
-
                 </div>
               </div>
             );
@@ -323,4 +374,3 @@ const FileList: React.FC<FileListProps> = ({
 };
 
 export default FileList;
-           

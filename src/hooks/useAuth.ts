@@ -1,6 +1,7 @@
 // hooks/useAuth.ts
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+import { toast } from "react-toastify";
 import type { User } from "../types";
 
 const API_BASE_URL = "http://localhost:3000/api";
@@ -23,6 +24,10 @@ export const useLogin = () => {
       // Store token and user data in localStorage
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      toast.success(`Welcome back, ${data.user.username}!`);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Login failed");
     },
   });
 };
@@ -32,8 +37,12 @@ export const useCreateUser = () => {
 
   return useMutation({
     mutationFn: createUser,
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast.success(`User "${variables.username}" created successfully!`);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Failed to create user");
     },
   });
 };
@@ -50,8 +59,12 @@ export const useUpdateUser = () => {
 
   return useMutation({
     mutationFn: updateUser,
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast.success(`User "${variables.username}" updated successfully!`);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Failed to update user");
     },
   });
 };
@@ -61,8 +74,12 @@ export const useDeleteUser = () => {
 
   return useMutation({
     mutationFn: deleteUser,
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast.success("User deleted successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Failed to delete user");
     },
   });
 };
