@@ -283,9 +283,15 @@ export const useUpdateFolder = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: updateFolder,
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ["folders"] });
       queryClient.invalidateQueries({ queryKey: ["folderTree"] });
+      queryClient.invalidateQueries({ queryKey: ["rootFolders"] });
+
+      // Also invalidate the specific folder query
+      queryClient.invalidateQueries({ queryKey: ["folder", variables.id] });
+
       toast.success(`Folder renamed to "${data.name}" successfully!`);
     },
     onError: (error: any) => {
