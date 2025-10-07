@@ -7,14 +7,14 @@ import {
   FiLogOut,
   FiMenu,
   FiX,
-  FiStar,
+  // FiStar,
   FiTrash2,
 } from "react-icons/fi";
 import ReviveMedicalTechLogo from "../assets/ReviveMedicalTech.png";
 import FileManagement from "../components/FileManagement";
 import UserManagementView from "../components/UserManagementView";
-import FavoritesView from "../components/FavoritesView";
-import FavoritesNavigationView from "../components/FavoritesNavigationView";
+// import FavoritesView from "../components/FavoritesView";
+// import FavoritesNavigationView from "../components/FavoritesNavigationView";
 import TrashView from "../components/TrashView";
 import type { User } from "../types";
 
@@ -26,7 +26,7 @@ const Dashboard: React.FC = () => {
   const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  // const [searchQuery, setSearchQuery] = useState("");
   const [activeView, setActiveView] = useState("dashboard");
   const [permissionResource, setPermissionResource] = useState<{
     id: number;
@@ -93,12 +93,12 @@ const Dashboard: React.FC = () => {
       icon: FiHome,
       color: "text-blue-600",
     },
-    {
-      id: "favorites",
-      name: "Favorites",
-      icon: FiStar,
-      color: "text-yellow-600",
-    },
+    // {
+    //   id: "favorites",
+    //   name: "Favorites",
+    //   icon: FiStar,
+    //   color: "text-yellow-600",
+    // },
   ];
 
   // Add Trash and Users sections only for super_admin
@@ -253,7 +253,7 @@ const Dashboard: React.FC = () => {
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
                   {activeView === "dashboard" && "Dashboard"}
-                  {activeView === "favorites" && "Favorites"}
+                  {/* {activeView === "favorites" && "Favorites"} */}
                   {activeView === "trash" && "Trash"}
                   {activeView === "users" && "User Management"}
                 </h1>
@@ -295,7 +295,7 @@ const Dashboard: React.FC = () => {
                 onUserCreated={handleUserCreated}
                 onUserManagementClose={handleUserManagementClose}
               />
-            ) : activeView === "favorites" ? (
+            ) : /* activeView === "favorites" ? (
               selectedFolderId ? (
                 <FavoritesNavigationView
                   user={user}
@@ -323,7 +323,7 @@ const Dashboard: React.FC = () => {
                   }}
                 />
               )
-            ) : activeView === "trash" ? (
+            ) : */ activeView === "trash" ? (
               <TrashView
                 user={user}
                 selectedFolderId={selectedFolderId}
@@ -337,7 +337,7 @@ const Dashboard: React.FC = () => {
             ) : (
               <FileManagement
                 selectedFolderId={selectedFolderId}
-                searchQuery={searchQuery}
+                searchQuery=""
                 user={user}
                 isUploadModalOpen={isUploadModalOpen}
                 setIsUploadModalOpen={setIsUploadModalOpen}

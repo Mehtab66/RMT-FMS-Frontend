@@ -4,7 +4,7 @@ import type { File } from "../types";
 import {
   useDownloadFile,
   useDeleteFile,
-  useToggleFileFavourite,
+  // useToggleFileFavourite,
   useRestoreFile,
   usePermanentDeleteFile,
 } from "../hooks/useFiles";
@@ -20,7 +20,7 @@ import {
   FiFileText,
   FiMoreVertical,
   FiTrash2,
-  FiHeart,
+  // FiHeart,
   FiRotateCcw,
 } from "react-icons/fi";
 
@@ -43,7 +43,7 @@ const FileList: React.FC<FileListProps> = ({
 }) => {
   const downloadFile = useDownloadFile();
   const deleteFile = useDeleteFile();
-  const toggleFavourite = useToggleFileFavourite();
+  // const toggleFavourite = useToggleFileFavourite();
   const restoreFile = useRestoreFile();
   const permanentDeleteFile = usePermanentDeleteFile();
   const { data: userPermissions } = useUserPermissions();
@@ -83,6 +83,23 @@ const FileList: React.FC<FileListProps> = ({
   };
 
   const handleDownload = (fileId: number) => {
+    console.log(`🖱️ Download button clicked for file ID: ${fileId}`);
+    console.log(`📁 Available files:`, files.map(f => ({ id: f.id, name: f.name })));
+    
+    // Validate file ID
+    if (!fileId || isNaN(fileId)) {
+      console.error("Invalid file ID:", fileId);
+      return;
+    }
+    
+    // Check if file exists in the current files list
+    const fileExists = files.find(f => f.id === fileId);
+    if (!fileExists) {
+      console.error(`File with ID ${fileId} not found in current files list`);
+      console.log(`Available file IDs:`, files.map(f => f.id));
+      return;
+    }
+    
     downloadFile.mutate(fileId);
   };
 
@@ -92,17 +109,17 @@ const FileList: React.FC<FileListProps> = ({
     }
   };
 
-  const handleToggleFavourite = (fileId: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    toggleFavourite.mutate(fileId, {
-      onSuccess: (data) => {
-        console.log("✅ File toggle success:", data);
-      },
-      onError: (error) => {
-        console.error("❌ File toggle error:", error);
-      }
-    });
-  };
+  // const handleToggleFavourite = (fileId: number, e: React.MouseEvent) => {
+  //   e.stopPropagation();
+  //   toggleFavourite.mutate(fileId, {
+  //     onSuccess: (data) => {
+  //       console.log("✅ File toggle success:", data);
+  //     },
+  //     onError: (error) => {
+  //       console.error("❌ File toggle error:", error);
+  //     }
+  //   });
+  // };
 
   const handleRestore = (fileId: number, fileName: string) => {
     if (window.confirm(`Are you sure you want to restore "${fileName}"?`)) {
@@ -138,20 +155,69 @@ const FileList: React.FC<FileListProps> = ({
 
   const handleFileClick = async (file: File) => {
     try {
+      console.log(`🖱️ File clicked for download - ID: ${file.id}, Name: ${file.name}`);
+      console.log(`📁 Available files:`, files.map(f => ({ id: f.id, name: f.name })));
+      
+      // Validate file ID
+      if (!file.id || isNaN(file.id)) {
+        console.error("Invalid file ID:", file.id);
+        return;
+      }
+      
+      // Check if file exists in the current files list
+      const fileExists = files.find(f => f.id === file.id);
+      if (!fileExists) {
+        console.error(`File with ID ${file.id} not found in current files list`);
+        console.log(`Available file IDs:`, files.map(f => f.id));
+        return;
+      }
+      
       const token = localStorage.getItem("token");
       if (!token) {
         console.error("No token found");
         return;
       }
 
-      const fileUrl = `http://localhost:3000/api/files/download/${file.id}`; // ✅ use your backend URL
+      // Try different endpoint patterns
+      let fileUrl = `http://localhost:3000/api/files/${file.id}/download`;
+      console.log(`📥 Trying download URL: ${fileUrl}`);
 
-      const response = await fetch(fileUrl, {
+      let response = await fetch(fileUrl, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`, // ✅ send token in header
         },
       });
+
+      // If first attempt fails, try alternative patterns
+      if (!response.ok) {
+        console.log(`❌ First attempt failed with ${response.status}, trying alternatives...`);
+        
+        // Try alternative pattern
+        fileUrl = `http://localhost:3000/api/files/download/${file.id}`;
+        console.log(`📥 Trying alternative URL: ${fileUrl}`);
+        
+        response = await fetch(fileUrl, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        
+        // If still fails, try direct file endpoint
+        if (!response.ok) {
+          console.log(`❌ Second attempt failed with ${response.status}, trying direct file...`);
+          fileUrl = `http://localhost:3000/api/files/${file.id}`;
+          console.log(`📥 Trying direct file URL: ${fileUrl}`);
+          
+          response = await fetch(fileUrl, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+        }
+      }
 
       if (!response.ok) {
         console.error("Failed to download file");
@@ -272,7 +338,7 @@ const FileList: React.FC<FileListProps> = ({
 
                 <div className="flex items-center space-x-2">
                   {/* Heart icon for favourites */}
-                  {showFavouriteToggle && (
+                  {/* {showFavouriteToggle && (
                     <button
                       onClick={(e) => {
                         console.log("🖱️ Heart clicked for file:", file.id, "favourited:", file.favourited);
@@ -294,7 +360,7 @@ const FileList: React.FC<FileListProps> = ({
                         fill={file.is_faviourite ? "currentColor" : "none"}
                       />
                     </button>
-                  )}
+                  )} */}
 
                   {hasDownloadPermission(file.id) && !isTrashView && (
                     <button

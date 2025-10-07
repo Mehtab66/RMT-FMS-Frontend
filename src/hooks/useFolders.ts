@@ -65,25 +65,25 @@ const deleteFolder = async (id: number): Promise<{ message: string }> => {
 };
 
 // Favourites and Trash functions
-const toggleFolderFavourite = async (
-  id: number
-): Promise<{ id: number; is_faviourite: boolean }> => {
-  const response = await axios.post(
-    `${API_BASE_URL}/folders/${id}/favourite/toggle`,
-    {},
-    {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    }
-  );
-  return response.data as { id: number; is_faviourite: boolean };
-};
+// const toggleFolderFavourite = async (
+//   id: number
+// ): Promise<{ id: number; is_faviourite: boolean }> => {
+//   const response = await axios.post(
+//     `${API_BASE_URL}/folders/${id}/favourite/toggle`,
+//     {},
+//     {
+//       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+//     }
+//   );
+//   return response.data as { id: number; is_faviourite: boolean };
+// };
 
-const fetchFavouriteFolders = async (): Promise<Folder[]> => {
-  const response = await axios.get(`${API_BASE_URL}/folders/favourites`, {
-    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-  });
-  return response.data.folders as Folder[];
-};
+// const fetchFavouriteFolders = async (): Promise<Folder[]> => {
+//   const response = await axios.get(`${API_BASE_URL}/folders/favourites`, {
+//     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+//   });
+//   return response.data.folders as Folder[];
+// };
 
 const fetchTrashFolders = async (): Promise<Folder[]> => {
   const response = await axios.get(`${API_BASE_URL}/folders/trash`, {
@@ -109,7 +109,7 @@ const fetchTrashFoldersByParent = async (
 
   console.log(
     `📁 Frontend received ${response.data.folders.length} trash folders:`,
-    response.data.folders.map((f) => ({
+    response.data.folders.map((f: any) => ({
       id: f.id,
       name: f.name,
       parent_id: f.parent_id,
@@ -120,32 +120,32 @@ const fetchTrashFoldersByParent = async (
 };
 
 // Favourites navigation functions
-const fetchFavouriteFoldersNavigation = async (
-  parentId: number | null = null
-): Promise<Folder[]> => {
-  const url = parentId
-    ? `${API_BASE_URL}/folders/favourites/navigate?parent_id=${parentId}`
-    : `${API_BASE_URL}/folders/favourites/navigate`;
+// const fetchFavouriteFoldersNavigation = async (
+//   parentId: number | null = null
+// ): Promise<Folder[]> => {
+//   const url = parentId
+//     ? `${API_BASE_URL}/folders/favourites/navigate?parent_id=${parentId}`
+//     : `${API_BASE_URL}/folders/favourites/navigate`;
 
-  console.log(
-    `🔍 Frontend fetchFavouriteFoldersNavigation called - parentId: ${parentId}, url: ${url}`
-  );
+//   console.log(
+//     `🔍 Frontend fetchFavouriteFoldersNavigation called - parentId: ${parentId}, url: ${url}`
+//   );
 
-  const response = await axios.get(url, {
-    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-  });
+//   const response = await axios.get(url, {
+//     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+//   });
 
-  console.log(
-    `📁 Frontend received ${response.data.folders.length} favourite folders:`,
-    response.data.folders.map((f) => ({
-      id: f.id,
-      name: f.name,
-      parent_id: f.parent_id,
-    }))
-  );
+//   console.log(
+//     `📁 Frontend received ${response.data.folders.length} favourite folders:`,
+//     response.data.folders.map((f) => ({
+//       id: f.id,
+//       name: f.name,
+//       parent_id: f.parent_id,
+//     }))
+//   );
 
-  return response.data.folders as Folder[];
-};
+//   return response.data.folders as Folder[];
+// };
 
 // Restore and permanent delete functions
 const restoreFolder = async (id: number): Promise<{ message: string }> => {
@@ -253,7 +253,7 @@ export const useCreateFolder = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createFolder,
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["folders"] });
       queryClient.invalidateQueries({ queryKey: ["rootFolders"] });
       queryClient.invalidateQueries({ queryKey: ["folderTree"] });
@@ -331,36 +331,36 @@ export const useUploadFolder = () => {
 };
 
 // New hooks for favourites and trash
-export const useToggleFolderFavourite = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: toggleFolderFavourite,
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["folders"] });
-      queryClient.invalidateQueries({ queryKey: ["rootFolders"] });
-      queryClient.invalidateQueries({ queryKey: ["favouriteFolders"] });
-      queryClient.invalidateQueries({ queryKey: ["trashFolders"] });
+// export const useToggleFolderFavourite = () => {
+//   const queryClient = useQueryClient();
+//   return useMutation({
+//     mutationFn: toggleFolderFavourite,
+//     onSuccess: (data) => {
+//       queryClient.invalidateQueries({ queryKey: ["folders"] });
+//       queryClient.invalidateQueries({ queryKey: ["rootFolders"] });
+//       queryClient.invalidateQueries({ queryKey: ["favouriteFolders"] });
+//       queryClient.invalidateQueries({ queryKey: ["trashFolders"] });
 
-      if (data.is_faviourite) {
-        toast.success("Folder added to favorites!");
-      } else {
-        toast.success("Folder removed from favorites!");
-      }
-    },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Failed to update folder favorites"
-      );
-    },
-  });
-};
+//       if (data.is_faviourite) {
+//         toast.success("Folder added to favorites!");
+//       } else {
+//         toast.success("Folder removed from favorites!");
+//       }
+//     },
+//     onError: (error: any) => {
+//       toast.error(
+//         error.response?.data?.message || "Failed to update folder favorites"
+//       );
+//     },
+//   });
+// };
 
-export const useFavouriteFolders = () =>
-  useQuery({
-    queryKey: ["favouriteFolders"],
-    queryFn: fetchFavouriteFolders,
-    enabled: !!localStorage.getItem("token"),
-  });
+// export const useFavouriteFolders = () =>
+//   useQuery({
+//     queryKey: ["favouriteFolders"],
+//     queryFn: fetchFavouriteFolders,
+//     enabled: !!localStorage.getItem("token"),
+//   });
 
 export const useTrashFolders = () =>
   useQuery({
@@ -377,12 +377,12 @@ export const useTrashFoldersByParent = (parentId: number | null) =>
   });
 
 // New hooks for favourites navigation
-export const useFavouriteFoldersNavigation = (parentId: number | null = null) =>
-  useQuery({
-    queryKey: ["favouriteFoldersNavigation", parentId],
-    queryFn: () => fetchFavouriteFoldersNavigation(parentId),
-    enabled: !!localStorage.getItem("token"),
-  });
+// export const useFavouriteFoldersNavigation = (parentId: number | null = null) =>
+//   useQuery({
+//     queryKey: ["favouriteFoldersNavigation", parentId],
+//     queryFn: () => fetchFavouriteFoldersNavigation(parentId),
+//     enabled: !!localStorage.getItem("token"),
+//   });
 
 // New hooks for restore and permanent delete
 export const useRestoreFolder = () => {

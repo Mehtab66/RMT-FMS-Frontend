@@ -10,7 +10,7 @@ import {
   FiEdit3,
   FiTrash2,
   FiDownload,
-  FiHeart,
+  // FiHeart,
   FiArrowLeft,
 } from "react-icons/fi";
 import FileList from "./FileList";
@@ -23,7 +23,7 @@ import {
   useFoldersByParent,
   useUpdateFolder,
   useDeleteFolder,
-  useToggleFolderFavourite,
+  // useToggleFolderFavourite,
 } from "../hooks/useFolders";
 import { useFiles, useRootFiles, useDownloadFolder } from "../hooks/useFiles";
 import { useUserPermissions } from "../hooks/usePermissions";
@@ -67,7 +67,7 @@ const FileManagement: React.FC<FileManagementProps> = ({
   const updateFolder = useUpdateFolder();
   const deleteFolder = useDeleteFolder();
   const downloadFolder = useDownloadFolder();
-  const toggleFolderFavourite = useToggleFolderFavourite();
+  // const toggleFolderFavourite = useToggleFolderFavourite();
   const { data: userPermissions } = useUserPermissions();
 
   // State for create folder modal
@@ -190,13 +190,13 @@ const FileManagement: React.FC<FileManagementProps> = ({
     ? filesLoading || subFoldersLoading
     : rootFilesLoading || rootFoldersLoading;
 
-  // Debug: Log folder data to see if favourited field is present
+  // Debug: Log files data
   React.useEffect(() => {
-    if (displayFolders && displayFolders.length > 0) {
-      console.log("🔍 [FileManagement] Folders data:", displayFolders);
-      console.log("🔍 [FileManagement] First folder favourited:", displayFolders[0]?.favourited);
-    }
-  }, [displayFolders]);
+    console.log("🔍 [FileManagement] Display files:", displayFiles?.map(f => ({ id: f.id, name: f.name })));
+    console.log("🔍 [FileManagement] Selected folder ID:", selectedFolderId);
+    console.log("🔍 [FileManagement] Files loading:", filesLoading);
+    console.log("🔍 [FileManagement] Root files loading:", rootFilesLoading);
+  }, [displayFiles, selectedFolderId, filesLoading, rootFilesLoading]);
 
   const filteredFiles =
     displayFiles?.filter((file) =>
@@ -249,21 +249,21 @@ const FileManagement: React.FC<FileManagementProps> = ({
     setOpenDropdownId(null);
   };
 
-  const handleToggleFolderFavourite = (
-    folderId: number,
-    e: React.MouseEvent
-  ) => {
-    e.stopPropagation();
-    toggleFolderFavourite.mutate(folderId, {
-      onSuccess: (data) => {
-        console.log("✅ Folder toggle success:", data);
-      },
-      onError: (error) => {
-        console.error("❌ Folder toggle error:", error);
-      }
-    });
-    setOpenDropdownId(null);
-  };
+  // const handleToggleFolderFavourite = (
+  //   folderId: number,
+  //   e: React.MouseEvent
+  // ) => {
+  //   e.stopPropagation();
+  //   toggleFolderFavourite.mutate(folderId, {
+  //     onSuccess: (data) => {
+  //       console.log("✅ Folder toggle success:", data);
+  //     },
+  //     onError: (error) => {
+  //       console.error("❌ Folder toggle error:", error);
+  //     }
+  //   });
+  //   setOpenDropdownId(null);
+  // };
 
   return (
     <>
@@ -353,7 +353,7 @@ const FileManagement: React.FC<FileManagementProps> = ({
                       </div>
 
                       {/* Heart icon */}
-                      <button
+                      {/* <button
                         onClick={(e) =>
                           handleToggleFolderFavourite(folder.id, e)
                         }
@@ -372,7 +372,7 @@ const FileManagement: React.FC<FileManagementProps> = ({
                           size={16}
                           fill={folder.is_faviourite ? "currentColor" : "none"}
                         />
-                      </button>
+                      </button> */}
 
                       {/* 3-dot dropdown menu */}
                       <div className="relative">
@@ -467,7 +467,7 @@ const FileManagement: React.FC<FileManagementProps> = ({
                   onAssignPermission={handleAssignPermission}
                   userRole={user.role}
                   userId={user.id}
-                  showFavouriteToggle={true}
+                  showFavouriteToggle={false}
                 />
               </div>
             )}

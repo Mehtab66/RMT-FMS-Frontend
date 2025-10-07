@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { toast } from "react-toastify";
-import type { File, FilesResponse, ApiResponse } from "../types";
+import type { File } from "../types";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
@@ -22,7 +22,7 @@ const fetchFiles = async (folderId: number | null = null): Promise<File[]> => {
 
   console.log(
     `📁 Frontend received ${response.data.files.length} files:`,
-    response.data.files.map((f) => ({
+    response.data.files.map((f: any) => ({
       id: f.id,
       name: f.name,
       folder_id: f.folder_id,
@@ -130,12 +130,50 @@ const uploadFolder = async (data: FormData): Promise<{ files: File[] }> => {
 
 const downloadFile = async (id: number): Promise<void> => {
   console.log(`📥 Downloading file ${id}...`);
+  console.log(`📥 Download URL: ${API_BASE_URL}/files/${id}/download`);
+
+  // Validate file ID
+  if (!id || isNaN(id)) {
+    throw new Error("Invalid file ID provided for download");
+  }
 
   try {
-    const response = await axios.get(`${API_BASE_URL}/files/download/${id}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      responseType: "blob",
-    });
+    // Try to download directly - let's try different endpoint patterns
+    let response;
+    try {
+      // Try the RESTful pattern first
+      console.log(`📥 Trying download URL: ${API_BASE_URL}/files/${id}/download`);
+      response = await axios.get(`${API_BASE_URL}/files/${id}/download`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        responseType: "blob",
+      });
+      console.log(`✅ Download successful with RESTful endpoint`);
+    } catch (firstError: any) {
+      console.log(`❌ First attempt failed: ${firstError.response?.status}`);
+      // Try alternative pattern
+      try {
+        console.log(`📥 Trying alternative URL: ${API_BASE_URL}/files/download/${id}`);
+        response = await axios.get(`${API_BASE_URL}/files/download/${id}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+          responseType: "blob",
+        });
+        console.log(`✅ Alternative endpoint worked`);
+      } catch (secondError: any) {
+        console.log(`❌ Second attempt also failed: ${secondError.response?.status}`);
+        // Try one more pattern - maybe it's just /files/{id}
+        try {
+          console.log(`📥 Trying direct file URL: ${API_BASE_URL}/files/${id}`);
+          response = await axios.get(`${API_BASE_URL}/files/${id}`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+            responseType: "blob",
+          });
+          console.log(`✅ Direct file endpoint worked`);
+        } catch (thirdError: any) {
+          console.log(`❌ All attempts failed`);
+          throw firstError; // Throw the original error
+        }
+      }
+    }
 
     // Check if response is valid
     if (!response.data) {
@@ -169,10 +207,13 @@ const downloadFile = async (id: number): Promise<void> => {
     console.log("✅ Download completed:", filename);
   } catch (error: any) {
     console.error("❌ Download failed:", error);
+    console.error("❌ Error response:", error.response?.data);
+    console.error("❌ Error status:", error.response?.status);
+    console.error("❌ Error URL:", error.config?.url);
 
     // Handle specific error cases
     if (error.response?.status === 404) {
-      throw new Error("File not found");
+      throw new Error(`File not found (ID: ${id}). Please check if the file exists.`);
     } else if (error.response?.status === 403) {
       throw new Error("Permission denied");
     } else if (error.response?.status === 500) {
@@ -244,9 +285,21 @@ const downloadFolder = async (id: number): Promise<void> => {
 
 // hooks/useFiles.ts - Add this function
 const fetchRootFiles = async (): Promise<File[]> => {
+  console.log(`🔍 Frontend fetchRootFiles called - url: ${API_BASE_URL}/files/root`);
+
   const response = await axios.get(`${API_BASE_URL}/files/root`, {
     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
   });
+
+  console.log(
+    `📁 Frontend received ${response.data.files.length} root files:`,
+    response.data.files.map((f: any) => ({
+      id: f.id,
+      name: f.name,
+      folder_id: f.folder_id,
+    }))
+  );
+
   return response.data.files as File[];
 };
 
@@ -283,25 +336,25 @@ const deleteFile = async (id: number): Promise<{ message: string }> => {
 };
 
 // Favourites and Trash functions
-const toggleFileFavourite = async (
-  id: number
-): Promise<{ id: number; is_faviourite: boolean }> => {
-  const response = await axios.post(
-    `${API_BASE_URL}/files/${id}/favourite/toggle`,
-    {},
-    {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    }
-  );
-  return response.data as { id: number; is_faviourite: boolean };
-};
+// const toggleFileFavourite = async (
+//   id: number
+// ): Promise<{ id: number; is_faviourite: boolean }> => {
+//   const response = await axios.post(
+//     `${API_BASE_URL}/files/${id}/favourite/toggle`,
+//     {},
+//     {
+//       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+//     }
+//   );
+//   return response.data as { id: number; is_faviourite: boolean };
+// };
 
-const fetchFavouriteFiles = async (): Promise<File[]> => {
-  const response = await axios.get(`${API_BASE_URL}/files/favourites`, {
-    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-  });
-  return response.data.files as File[];
-};
+// const fetchFavouriteFiles = async (): Promise<File[]> => {
+//   const response = await axios.get(`${API_BASE_URL}/files/favourites`, {
+//     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+//   });
+//   return response.data.files as File[];
+// };
 
 const fetchTrashFiles = async (): Promise<File[]> => {
   const response = await axios.get(`${API_BASE_URL}/files/trash`, {
@@ -327,7 +380,7 @@ const fetchTrashFilesByFolder = async (
 
   console.log(
     `📁 Frontend received ${response.data.files.length} trash files:`,
-    response.data.files.map((f) => ({
+    response.data.files.map((f: any) => ({
       id: f.id,
       name: f.name,
       folder_id: f.folder_id,
@@ -338,32 +391,32 @@ const fetchTrashFilesByFolder = async (
 };
 
 // Favourites navigation functions
-const fetchFavouriteFilesNavigation = async (
-  folderId: number | null = null
-): Promise<File[]> => {
-  const url = folderId
-    ? `${API_BASE_URL}/files/favourites/navigate?folder_id=${folderId}`
-    : `${API_BASE_URL}/files/favourites/navigate`;
+// const fetchFavouriteFilesNavigation = async (
+//   folderId: number | null = null
+// ): Promise<File[]> => {
+//   const url = folderId
+//     ? `${API_BASE_URL}/files/favourites/navigate?folder_id=${folderId}`
+//     : `${API_BASE_URL}/files/favourites/navigate`;
 
-  console.log(
-    `🔍 Frontend fetchFavouriteFilesNavigation called - folderId: ${folderId}, url: ${url}`
-  );
+//   console.log(
+//     `🔍 Frontend fetchFavouriteFilesNavigation called - folderId: ${folderId}, url: ${url}`
+//   );
 
-  const response = await axios.get(url, {
-    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-  });
+//   const response = await axios.get(url, {
+//     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+//   });
 
-  console.log(
-    `📁 Frontend received ${response.data.files.length} favourite files:`,
-    response.data.files.map((f) => ({
-      id: f.id,
-      name: f.name,
-      folder_id: f.folder_id,
-    }))
-  );
+//   console.log(
+//     `📁 Frontend received ${response.data.files.length} favourite files:`,
+//     response.data.files.map((f) => ({
+//       id: f.id,
+//       name: f.name,
+//       folder_id: f.folder_id,
+//     }))
+//   );
 
-  return response.data.files as File[];
-};
+//   return response.data.files as File[];
+// };
 
 // Restore and permanent delete functions
 const restoreFile = async (id: number): Promise<{ message: string }> => {
@@ -524,36 +577,36 @@ export const useDeleteFile = () => {
 };
 
 // New hooks for favourites and trash
-export const useToggleFileFavourite = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: toggleFileFavourite,
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["files"] });
-      queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
-      queryClient.invalidateQueries({ queryKey: ["favouriteFiles"] });
-      queryClient.invalidateQueries({ queryKey: ["trashFiles"] });
+// export const useToggleFileFavourite = () => {
+//   const queryClient = useQueryClient();
+//   return useMutation({
+//     mutationFn: toggleFileFavourite,
+//     onSuccess: (data) => {
+//       queryClient.invalidateQueries({ queryKey: ["files"] });
+//       queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
+//       queryClient.invalidateQueries({ queryKey: ["favouriteFiles"] });
+//       queryClient.invalidateQueries({ queryKey: ["trashFiles"] });
 
-      if (data.is_faviourite) {
-        toast.success("File added to favorites!");
-      } else {
-        toast.success("File removed from favorites!");
-      }
-    },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Failed to update favorites"
-      );
-    },
-  });
-};
+//       if (data.is_faviourite) {
+//         toast.success("File added to favorites!");
+//       } else {
+//         toast.success("File removed from favorites!");
+//       }
+//     },
+//     onError: (error: any) => {
+//       toast.error(
+//         error.response?.data?.message || "Failed to update favorites"
+//       );
+//     },
+//   });
+// };
 
-export const useFavouriteFiles = () =>
-  useQuery({
-    queryKey: ["favouriteFiles"],
-    queryFn: fetchFavouriteFiles,
-    enabled: !!localStorage.getItem("token"),
-  });
+// export const useFavouriteFiles = () =>
+//   useQuery({
+//     queryKey: ["favouriteFiles"],
+//     queryFn: fetchFavouriteFiles,
+//     enabled: !!localStorage.getItem("token"),
+//   });
 
 export const useTrashFiles = () =>
   useQuery({
@@ -570,12 +623,12 @@ export const useTrashFilesByFolder = (folderId: number | null) =>
   });
 
 // New hooks for favourites navigation
-export const useFavouriteFilesNavigation = (folderId: number | null = null) =>
-  useQuery({
-    queryKey: ["favouriteFilesNavigation", folderId],
-    queryFn: () => fetchFavouriteFilesNavigation(folderId),
-    enabled: !!localStorage.getItem("token"),
-  });
+// export const useFavouriteFilesNavigation = (folderId: number | null = null) =>
+//   useQuery({
+//     queryKey: ["favouriteFilesNavigation", folderId],
+//     queryFn: () => fetchFavouriteFilesNavigation(folderId),
+//     enabled: !!localStorage.getItem("token"),
+//   });
 
 // New hooks for restore and permanent delete
 export const useRestoreFile = () => {
