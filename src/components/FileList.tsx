@@ -178,46 +178,16 @@ const FileList: React.FC<FileListProps> = ({
         return;
       }
 
-      // Try different endpoint patterns
-      let fileUrl = `http://localhost:3000/api/files/${file.id}/download`;
-      console.log(`📥 Trying download URL: ${fileUrl}`);
+      // Use the correct backend endpoint: /files/download/{id}
+      const fileUrl = `http://localhost:3000/api/files/download/${file.id}`;
+      console.log(`📥 Downloading from: ${fileUrl}`);
 
-      let response = await fetch(fileUrl, {
+      const response = await fetch(fileUrl, {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${token}`, // ✅ send token in header
+          Authorization: `Bearer ${token}`,
         },
       });
-
-      // If first attempt fails, try alternative patterns
-      if (!response.ok) {
-        console.log(`❌ First attempt failed with ${response.status}, trying alternatives...`);
-        
-        // Try alternative pattern
-        fileUrl = `http://localhost:3000/api/files/download/${file.id}`;
-        console.log(`📥 Trying alternative URL: ${fileUrl}`);
-        
-        response = await fetch(fileUrl, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        
-        // If still fails, try direct file endpoint
-        if (!response.ok) {
-          console.log(`❌ Second attempt failed with ${response.status}, trying direct file...`);
-          fileUrl = `http://localhost:3000/api/files/${file.id}`;
-          console.log(`📥 Trying direct file URL: ${fileUrl}`);
-          
-          response = await fetch(fileUrl, {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-        }
-      }
 
       if (!response.ok) {
         console.error("Failed to download file");

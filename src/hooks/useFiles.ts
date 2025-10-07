@@ -138,42 +138,13 @@ const downloadFile = async (id: number): Promise<void> => {
   }
 
   try {
-    // Try to download directly - let's try different endpoint patterns
-    let response;
-    try {
-      // Try the RESTful pattern first
-      console.log(`📥 Trying download URL: ${API_BASE_URL}/files/${id}/download`);
-      response = await axios.get(`${API_BASE_URL}/files/${id}/download`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        responseType: "blob",
-      });
-      console.log(`✅ Download successful with RESTful endpoint`);
-    } catch (firstError: any) {
-      console.log(`❌ First attempt failed: ${firstError.response?.status}`);
-      // Try alternative pattern
-      try {
-        console.log(`📥 Trying alternative URL: ${API_BASE_URL}/files/download/${id}`);
-        response = await axios.get(`${API_BASE_URL}/files/download/${id}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-          responseType: "blob",
-        });
-        console.log(`✅ Alternative endpoint worked`);
-      } catch (secondError: any) {
-        console.log(`❌ Second attempt also failed: ${secondError.response?.status}`);
-        // Try one more pattern - maybe it's just /files/{id}
-        try {
-          console.log(`📥 Trying direct file URL: ${API_BASE_URL}/files/${id}`);
-          response = await axios.get(`${API_BASE_URL}/files/${id}`, {
-            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-            responseType: "blob",
-          });
-          console.log(`✅ Direct file endpoint worked`);
-        } catch (thirdError: any) {
-          console.log(`❌ All attempts failed`);
-          throw firstError; // Throw the original error
-        }
-      }
-    }
+    // Use the correct backend endpoint: /files/download/{id}
+    console.log(`📥 Downloading from: ${API_BASE_URL}/files/download/${id}`);
+    const response = await axios.get(`${API_BASE_URL}/files/download/${id}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      responseType: "blob",
+    });
+    console.log(`✅ Download successful`);
 
     // Check if response is valid
     if (!response.data) {
