@@ -151,12 +151,6 @@ const downloadFile = async (id: number): Promise<void> => {
       throw new Error("No file data received");
     }
 
-    // Create blob and download
-    const blob = new Blob([response.data]);
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-
     // Get filename from content-disposition header or use ID
     const contentDisposition = response.headers["content-disposition"];
     let filename = `file-${id}`;
@@ -165,6 +159,14 @@ const downloadFile = async (id: number): Promise<void> => {
       if (filenameMatch) filename = filenameMatch[1];
     }
 
+    // Get MIME type from response headers
+    const contentType = response.headers["content-type"] || "application/octet-stream";
+
+    // Create blob with correct MIME type
+    const blob = new Blob([response.data], { type: contentType });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
     link.setAttribute("download", filename);
     document.body.appendChild(link);
     link.click();

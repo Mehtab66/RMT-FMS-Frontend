@@ -97,6 +97,7 @@ const FileList: React.FC<FileListProps> = ({
     if (!fileExists) {
       console.error(`File with ID ${fileId} not found in current files list`);
       console.log(`Available file IDs:`, files.map(f => f.id));
+      console.log(`Available files:`, files.map(f => ({ id: f.id, name: f.name })));
       return;
     }
     
