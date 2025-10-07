@@ -4,7 +4,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import type { User } from "../types";
 
-const API_BASE_URL = "http://localhost:3000/api";
+const API_BASE_URL = "http://13.233.6.224:3100/api";
 
 // Login types and hook
 interface LoginCredentials {
@@ -21,6 +21,8 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: login,
     onSuccess: (data) => {
+      console.log("Login successful:", data);
+
       // Store token and user data in localStorage
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
@@ -38,6 +40,7 @@ export const useCreateUser = () => {
   return useMutation({
     mutationFn: createUser,
     onSuccess: (data, variables) => {
+      console.log("User created:", data);
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toast.success(`User "${variables.username}" created successfully!`);
     },
@@ -60,6 +63,8 @@ export const useUpdateUser = () => {
   return useMutation({
     mutationFn: updateUser,
     onSuccess: (data, variables) => {
+      console.log("User updated:", data);
+
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toast.success(`User "${variables.username}" updated successfully!`);
     },
@@ -75,6 +80,8 @@ export const useDeleteUser = () => {
   return useMutation({
     mutationFn: deleteUser,
     onSuccess: (data, variables) => {
+      console.log("User deleted:", data, variables);
+
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toast.success("User deleted successfully!");
     },

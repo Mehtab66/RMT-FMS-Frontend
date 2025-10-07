@@ -18,7 +18,6 @@ import {
   FiMusic,
   FiArchive,
   FiFileText,
-  FiMoreVertical,
   FiTrash2,
   // FiHeart,
   FiRotateCcw,
@@ -38,7 +37,6 @@ const FileList: React.FC<FileListProps> = ({
   onAssignPermission,
   userRole,
   userId,
-  showFavouriteToggle = false,
   isTrashView = false,
 }) => {
   const downloadFile = useDownloadFile();
@@ -180,7 +178,7 @@ const FileList: React.FC<FileListProps> = ({
       }
 
       // Use the correct backend endpoint: /files/download/{id}
-      const fileUrl = `http://localhost:3000/api/files/download/${file.id}`;
+      const fileUrl = `http://13.233.6.224:3100/api/files/download/${file.id}`;
       console.log(`📥 Downloading from: ${fileUrl}`);
 
       const response = await fetch(fileUrl, {

@@ -2,18 +2,16 @@
 import React from "react";
 import {
   FiFolder,
-  FiFile,
   FiTrash2,
   FiMoreVertical,
-  FiDownload,
-  FiKey,
+  
   FiRotateCcw,
   FiArrowLeft,
 } from "react-icons/fi";
 import FileList from "./FileList";
-import { useTrashFiles, useTrashFilesByFolder, useRestoreFile, usePermanentDeleteFile } from "../hooks/useFiles";
-import { useTrashFolders, useTrashFoldersByParent, useRestoreFolder, usePermanentDeleteFolder } from "../hooks/useFolders";
-import { useUserPermissions } from "../hooks/usePermissions";
+import {  useTrashFilesByFolder } from "../hooks/useFiles";
+import {  useTrashFoldersByParent, useRestoreFolder, usePermanentDeleteFolder } from "../hooks/useFolders";
+// import { useUserPermissions } from "../hooks/usePermissions";
 import type { User, Folder } from "../types";
 
 interface TrashViewProps {
@@ -33,11 +31,11 @@ const TrashView: React.FC<TrashViewProps> = ({
 }) => {
   const { data: trashFiles, isLoading: filesLoading } = useTrashFilesByFolder(selectedFolderId);
   const { data: trashFolders, isLoading: foldersLoading } = useTrashFoldersByParent(selectedFolderId);
-  const { data: userPermissions } = useUserPermissions();
+  // const { data: userPermissions } = useUserPermissions();
   
   // Mutation hooks for restore and permanent delete
-  const restoreFile = useRestoreFile();
-  const permanentDeleteFile = usePermanentDeleteFile();
+  // const restoreFile = useRestoreFile();
+  // const permanentDeleteFile = usePermanentDeleteFile();
   const restoreFolder = useRestoreFolder();
   const permanentDeleteFolder = usePermanentDeleteFolder();
 

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import type { SharedResource } from "../types";
 
-const API_BASE_URL = "http://localhost:3000/api";
+const API_BASE_URL = "http://13.233.6.224:3100/api";
 
 // Shared resource functions
 const createSharedResource = async (
