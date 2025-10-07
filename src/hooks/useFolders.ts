@@ -4,7 +4,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import type { Folder } from "../types";
 
-const API_BASE_URL = "http://localhost:3000/api";
+const API_BASE_URL = "http://13.233.6.224:3100/api";
 
 // -----------------------------
 // Folder APIs (metadata only)
