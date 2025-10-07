@@ -175,19 +175,56 @@ const permanentDeleteFolder = async (
 // Folder Upload (with files inside)
 // -----------------------------
 const uploadFolder = async (formData: FormData): Promise<{ files: any[] }> => {
-  const response = await axios.post(
-    `${API_BASE_URL}/files/upload-folder`,
-    formData,
-    {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-        "Content-Type": "multipart/form-data",
-      },
-      timeout: 300000, // allow large uploads
-    }
-  );
+  try {
+    console.log("📤 Starting folder upload...");
 
-  return response.data as { files: any[] };
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const response = await axios.post(
+      `${API_BASE_URL}/files/upload-folder`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+        timeout: 300000,
+      }
+    );
+
+    console.log("✅ Upload response:", response.data);
+
+    // Handle different possible response structures
+    if (response.data && response.data.files !== undefined) {
+      return { files: response.data.files || [] };
+    } else if (Array.isArray(response.data)) {
+      return { files: response.data };
+    } else if (response.data) {
+      // If backend returns different structure but upload was successful
+      console.log("⚠️ Unexpected response structure, but upload successful");
+      return { files: [] };
+    } else {
+      return { files: [] };
+    }
+  } catch (error: any) {
+    console.error("❌ Upload folder API error:", error);
+
+    // Provide more specific error messages
+    if (error.response?.status === 413) {
+      throw new Error("File too large");
+    } else if (error.code === "NETWORK_ERROR") {
+      throw new Error("Network error - please check your connection");
+    } else if (error.code === "ECONNABORTED") {
+      throw new Error("Upload timeout - please try again");
+    } else {
+      throw new Error(
+        error.response?.data?.message || error.message || "Upload failed"
+      );
+    }
+  }
 };
 
 // hooks/useFolders.ts - Add this function
@@ -323,15 +360,24 @@ export const useUploadFolder = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: uploadFolder,
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      console.log("✅ Folder upload successful:", data);
+
+      // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ["folders"] });
       queryClient.invalidateQueries({ queryKey: ["folderTree"] });
+      queryClient.invalidateQueries({ queryKey: ["rootFolders"] });
+      queryClient.invalidateQueries({ queryKey: ["files"] });
+      queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
+
+      const fileCount = data?.files?.length || 0;
       toast.success(
-        `Folder uploaded successfully! ${data.files.length} files added.`
+        `Folder uploaded successfully! ${fileCount} files processed.`
       );
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to upload folder");
+      console.error("❌ useUploadFolder error:", error);
+      toast.error(error.message || "Failed to upload folder");
     },
   });
 };
