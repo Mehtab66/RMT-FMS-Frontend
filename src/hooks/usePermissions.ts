@@ -2,7 +2,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { toast } from "react-toastify";
-import type { Permission, PermissionsResponse, ApiResponse } from "../types";
+import type { Permission } from "../types";
 
 const API_BASE_URL = "http://13.233.6.224:3100/api";
 

@@ -18,7 +18,6 @@ import {
   FiMusic,
   FiArchive,
   FiFileText,
-  FiMoreVertical,
   FiTrash2,
   // FiHeart,
   FiRotateCcw,
@@ -38,7 +37,6 @@ const FileList: React.FC<FileListProps> = ({
   onAssignPermission,
   userRole,
   userId,
-  showFavouriteToggle = false,
   isTrashView = false,
 }) => {
   const downloadFile = useDownloadFile();

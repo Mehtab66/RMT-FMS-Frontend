@@ -21,6 +21,8 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: login,
     onSuccess: (data) => {
+      console.log("Login successful:", data);
+      
       // Store token and user data in localStorage
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
@@ -60,6 +62,8 @@ export const useUpdateUser = () => {
   return useMutation({
     mutationFn: updateUser,
     onSuccess: (data, variables) => {
+      console.log("User updated:", data);
+      
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toast.success(`User "${variables.username}" updated successfully!`);
     },
@@ -75,6 +79,8 @@ export const useDeleteUser = () => {
   return useMutation({
     mutationFn: deleteUser,
     onSuccess: (data, variables) => {
+      console.log("User deleted:", data, variables);
+      
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toast.success("User deleted successfully!");
     },

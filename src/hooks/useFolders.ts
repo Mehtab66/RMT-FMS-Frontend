@@ -361,7 +361,7 @@ export const useUploadFolder = () => {
   return useMutation({
     mutationFn: uploadFolder,
     onSuccess: (data, variables) => {
-      console.log("✅ Folder upload successful:", data);
+      console.log("✅ Folder upload successful:", data, variables);
 
       // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ["folders"] });

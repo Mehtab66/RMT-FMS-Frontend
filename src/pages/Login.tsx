@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useLogin } from '../hooks/useAuth';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useLogin } from "../hooks/useAuth";
 
 const LoginPage: React.FC = () => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [isLogin] = useState(true);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const login = useLogin();
@@ -17,12 +17,12 @@ const LoginPage: React.FC = () => {
       { username, password },
       {
         onSuccess: (data) => {
-          localStorage.setItem('token', data.token);
-          localStorage.setItem('user', JSON.stringify(data.user));
-          navigate('/dashboard');
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("user", JSON.stringify(data.user));
+          navigate("/dashboard");
         },
         onError: () => {
-          alert('Login failed');
+          alert("Login failed");
         },
       }
     );
@@ -35,12 +35,17 @@ const LoginPage: React.FC = () => {
         <div className="w-full md:w-2/5 bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-8 flex flex-col justify-center">
           <div className="text-center md:text-left mb-8">
             <div className="text-4xl font-bold mb-2">RMT</div>
-            <div className="text-xl opacity-90">Revive Medical Technologies</div>
+            <div className="text-xl opacity-90">
+              Revive Medical Technologies
+            </div>
           </div>
           <div className="my-8">
-            <h2 className="text-2xl font-bold mb-4">Secure File Management System</h2>
+            <h2 className="text-2xl font-bold mb-4">
+              Secure File Management System
+            </h2>
             <p className="opacity-90 mb-6">
-              Advanced permission-based file management designed for medical research and innovation.
+              Advanced permission-based file management designed for medical
+              research and innovation.
             </p>
             <div className="space-y-4">
               <div className="flex items-center">
@@ -72,15 +77,20 @@ const LoginPage: React.FC = () => {
         <div className="w-full md:w-3/5 bg-white p-8 md:p-12 flex flex-col justify-center">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              {isLogin ? 'Welcome Back' : 'Create Account'}
+              {isLogin ? "Welcome Back" : "Create Account"}
             </h1>
             <p className="text-gray-600">
-              {isLogin ? 'Sign in to access your files' : 'Join RMT\'s secure file management system'}
+              {isLogin
+                ? "Sign in to access your files"
+                : "Join RMT's secure file management system"}
             </p>
           </div>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Username
               </label>
               <div className="relative">
@@ -99,7 +109,10 @@ const LoginPage: React.FC = () => {
               </div>
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Password
               </label>
               <div className="relative">
@@ -108,7 +121,7 @@ const LoginPage: React.FC = () => {
                 </div>
                 <input
                   id="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
@@ -120,7 +133,9 @@ const LoginPage: React.FC = () => {
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  <span className="text-gray-500 text-sm">{showPassword ? '🙈' : '👁️'}</span>
+                  <span className="text-gray-500 text-sm">
+                    {showPassword ? "🙈" : "👁️"}
+                  </span>
                 </button>
               </div>
             </div>
@@ -133,12 +148,18 @@ const LoginPage: React.FC = () => {
                   onChange={() => setRememberMe(!rememberMe)}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-gray-700"
+                >
                   Remember me
                 </label>
               </div>
               {isLogin && (
-                <a href="#" className="text-sm text-blue-600 hover:text-blue-500">
+                <a
+                  href="#"
+                  className="text-sm text-blue-600 hover:text-blue-500"
+                >
                   Forgot password?
                 </a>
               )}
@@ -148,7 +169,7 @@ const LoginPage: React.FC = () => {
               className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors shadow-md hover:shadow-lg"
               disabled={login.isPending}
             >
-              {login.isPending ? 'Signing In...' : 'Sign In'}
+              {login.isPending ? "Signing In..." : "Sign In"}
             </button>
           </form>
         </div>
