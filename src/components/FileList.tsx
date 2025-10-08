@@ -99,7 +99,8 @@ const FileList: React.FC<FileListProps> = ({
       return;
     }
     
-    downloadFile.mutate(fileId);
+    // Pass the filename to the download function
+    downloadFile.mutate({ id: fileId, fileName: fileExists.name });
   };
 
   const handleDelete = (fileId: number, fileName: string) => {
