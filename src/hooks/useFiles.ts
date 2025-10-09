@@ -128,7 +128,7 @@ const uploadFolder = async (data: FormData): Promise<{ files: File[] }> => {
   }
 };
 
-const downloadFile = async (id: number): Promise<void> => {
+const downloadFile = async (id: number, fileName?: string): Promise<void> => {
   console.log(`📥 Downloading file ${id}...`);
   console.log(`📥 Download URL: ${API_BASE_URL}/files/${id}/download`);
 
@@ -145,18 +145,40 @@ const downloadFile = async (id: number): Promise<void> => {
       responseType: "blob",
     });
     console.log(`✅ Download successful`);
+    console.log("🔍 All response headers:", response.headers);
 
     // Check if response is valid
     if (!response.data) {
       throw new Error("No file data received");
     }
 
-    // Get filename from content-disposition header or use ID
+    // Get filename from content-disposition header or use provided filename
     const contentDisposition = response.headers["content-disposition"];
+    console.log("🔍 Content-Disposition header:", contentDisposition);
+    
     let filename = `file-${id}`;
     if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
-      if (filenameMatch) filename = filenameMatch[1];
+      // Split by semicolon and find the filename part
+      const parts = contentDisposition.split(';');
+      for (const part of parts) {
+        const trimmed = part.trim();
+        if (trimmed.startsWith('filename=')) {
+          filename = trimmed.substring(9); // Remove "filename="
+          // Remove quotes if present
+          if (filename.startsWith('"') && filename.endsWith('"')) {
+            filename = filename.slice(1, -1);
+          }
+          break;
+        }
+      }
+      console.log("🔍 Extracted filename:", filename);
+    } else if (fileName) {
+      // Use the filename passed from the component
+      filename = fileName;
+      console.log("🔍 Using provided filename:", filename);
+    } else {
+      console.log("❌ No Content-Disposition header found and no filename provided");
+      filename = `downloaded-file-${id}`;
     }
 
     // Get MIME type from response headers
@@ -517,7 +539,7 @@ export const useUploadFolder = () => {
 
 export const useDownloadFile = () =>
   useMutation({
-    mutationFn: downloadFile,
+    mutationFn: ({ id, fileName }: { id: number; fileName?: string }) => downloadFile(id, fileName),
     onSuccess: () => {
       toast.success("File downloaded successfully!");
     },
