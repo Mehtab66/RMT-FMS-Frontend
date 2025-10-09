@@ -143,7 +143,7 @@ const FileList: React.FC<FileListProps> = ({
       }
 
       // Use the correct backend endpoint: /files/download/{id}
-      const fileUrl = `http://13.233.6.224:3100/api/files/download/${file.id}`;
+      const fileUrl = `https://rmtfms.duckdns.org/api/files/download/${file.id}`;
       console.log(`📥 Downloading from: ${fileUrl}`);
 
       const response = await fetch(fileUrl, {
@@ -190,7 +190,7 @@ const FileList: React.FC<FileListProps> = ({
     try {
       // 1️⃣ Ask backend for short-lived signed URL
       const res = await fetch(
-        `http://13.233.6.224:3100/api/files/open/${fileId}/url`,
+        `https://rmtfms.duckdns.org/api/files/open/${fileId}/url`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

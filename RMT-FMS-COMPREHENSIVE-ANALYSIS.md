@@ -150,7 +150,7 @@ src/
 
 ### API Communication Pattern
 
-- **Base URL**: `http://13.233.6.224:3100/api`
+- **Base URL**: `https://rmtfms.duckdns.org/api`
 - **Authentication**: Bearer token in Authorization header
 - **Error Handling**: Consistent error response format
 - **File Uploads**: Multipart/form-data with progress tracking

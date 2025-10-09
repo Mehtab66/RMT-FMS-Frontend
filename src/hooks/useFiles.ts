@@ -4,7 +4,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import type { File } from "../types";
 
-const API_BASE_URL = "http://13.233.6.224:3100/api";
+const API_BASE_URL = "https://rmtfms.duckdns.org/api";
 
 // File functions
 const fetchFiles = async (folderId: number | null = null): Promise<File[]> => {
