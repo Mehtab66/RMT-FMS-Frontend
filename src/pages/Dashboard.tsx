@@ -39,10 +39,10 @@ const Dashboard: React.FC = () => {
 
   const user: User = JSON.parse(localStorage.getItem("user") || "{}");
 
-  const handleEditUser = (userItem: User) => {
-    setEditingUser(userItem);
-    setIsUserManagementOpen(true);
-  };
+  // const handleEditUser = (userItem: User) => {
+  //   setEditingUser(userItem);
+  //   setIsUserManagementOpen(true);
+  // };
 
   const handleUserManagementClose = () => {
     setIsUserManagementOpen(false);
