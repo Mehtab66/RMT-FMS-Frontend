@@ -187,25 +187,20 @@ const FileList: React.FC<FileListProps> = ({
   };
 
   const handleOpenFile = async (fileId: number, token: string) => {
-    const fileUrl = `http://13.233.6.224:3100/api/files/open/${fileId}`;
-
     try {
-      const response = await fetch(fileUrl, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      // 1️⃣ Ask backend for short-lived signed URL
+      const res = await fetch(
+        `http://13.233.6.224:3100/api/files/open/${fileId}/url`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-      if (!response.ok) {
-        throw new Error("Failed to open file");
-      }
+      if (!res.ok) throw new Error("Failed to get file URL");
+      const data = await res.json();
 
-      // Get the actual file URL and open it directly in a new tab
-      // For files served from your server, you can use the direct URL
-      const directFileUrl = `http://13.233.6.224:3100/api/files/open/${fileId}`;
-
-      // Open in new tab - this will respect the Content-Disposition: inline header
-      window.open(directFileUrl, "_blank", "noopener,noreferrer");
+      // 2️⃣ Open signed URL directly — no token required in headers
+      window.open(data.url, "_blank", "noopener,noreferrer");
     } catch (err) {
       console.error("❌ Error opening file:", err);
       alert("Failed to open file. Please try again.");
@@ -336,14 +331,14 @@ const FileList: React.FC<FileListProps> = ({
                     <span>
                       {new Date(file.created_at).toLocaleDateString()}
                     </span>
-                    {file.mime_type && (
+                    {/* {file.mime_type && (
                       <>
                         <span>•</span>
                         <span className="capitalize">
                           {file.mime_type.split("/")[1] || file.mime_type}
                         </span>
                       </>
-                    )}
+                    )} */}
                     {!canView && (
                       <span className="text-red-500 text-xs font-medium">
                         No view permission

@@ -473,11 +473,13 @@ export const useUploadFile = () => {
   return useMutation({
     mutationFn: uploadFile,
     onSuccess: (data) => {
+      console.log("🎉 FILE UPLOAD SUCCESS:", data);
+
       queryClient.invalidateQueries({ queryKey: ["files"] });
       queryClient.invalidateQueries({ queryKey: ["rootFiles"] });
       // Invalidate all file queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ["files", undefined] });
-      toast.success(`File "${data.name}" uploaded successfully!`);
+      toast.success(`File  uploaded successfully!`);
     },
     onError: (error: any) => {
       console.error("Upload mutation error:", error);

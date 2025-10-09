@@ -181,7 +181,7 @@ const UploadModal: React.FC<UploadModalProps> = ({
 
       uploadFileMutation.mutate(formData, {
         onSuccess: () => {
-          alert("File uploaded successfully!");
+          // alert("File uploaded successfully!");
           onClose(); // Close modal after successful upload
         },
         onError: (error: any) => {
