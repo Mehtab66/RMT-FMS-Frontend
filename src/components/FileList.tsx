@@ -189,13 +189,6 @@ const FileList: React.FC<FileListProps> = ({
   const handleOpenFile = async (fileId: number, token: string) => {
     const fileUrl = `http://13.233.6.224:3100/api/files/open/${fileId}`;
 
-    // open blank tab immediately to prevent popup blocking
-    const newTab = window.open("", "_blank");
-    if (!newTab) {
-      alert("Please allow popups for this site.");
-      return;
-    }
-
     try {
       const response = await fetch(fileUrl, {
         headers: {
@@ -207,12 +200,15 @@ const FileList: React.FC<FileListProps> = ({
         throw new Error("Failed to open file");
       }
 
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      newTab.location.href = blobUrl;
+      // Get the actual file URL and open it directly in a new tab
+      // For files served from your server, you can use the direct URL
+      const directFileUrl = `http://13.233.6.224:3100/api/files/open/${fileId}`;
+
+      // Open in new tab - this will respect the Content-Disposition: inline header
+      window.open(directFileUrl, "_blank", "noopener,noreferrer");
     } catch (err) {
       console.error("❌ Error opening file:", err);
-      newTab.close();
+      alert("Failed to open file. Please try again.");
     }
   };
 
