@@ -160,7 +160,8 @@ const downloadFile = async (id: number): Promise<void> => {
     }
 
     // Get MIME type from response headers
-    const contentType = response.headers["content-type"] || "application/octet-stream";
+    const contentType =
+      response.headers["content-type"] || "application/octet-stream";
 
     // Create blob with correct MIME type
     const blob = new Blob([response.data], { type: contentType });
@@ -186,7 +187,9 @@ const downloadFile = async (id: number): Promise<void> => {
 
     // Handle specific error cases
     if (error.response?.status === 404) {
-      throw new Error(`File not found (ID: ${id}). Please check if the file exists.`);
+      throw new Error(
+        `File not found (ID: ${id}). Please check if the file exists.`
+      );
     } else if (error.response?.status === 403) {
       throw new Error("Permission denied");
     } else if (error.response?.status === 500) {
@@ -217,13 +220,32 @@ const downloadFolder = async (id: number): Promise<void> => {
     const link = document.createElement("a");
     link.href = url;
 
-    // Get filename from content-disposition header or use ID
+    // Get filename from content-disposition header
     const contentDisposition = response.headers["content-disposition"];
-    let filename = `folder-${id}.zip`;
+    let filename = `folder-${id}.zip`; // Fallback name
+
     if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
-      if (filenameMatch) filename = filenameMatch[1];
+      // Handle both quoted and unquoted filenames
+      const filenameMatch = contentDisposition.match(
+        /filename\*?=["']?([^"']+)["']?/i
+      );
+      if (filenameMatch && filenameMatch[1]) {
+        // Extract the actual filename, handling potential encoding
+        filename = decodeURIComponent(
+          filenameMatch[1].split("''").pop() || filenameMatch[1]
+        );
+      } else {
+        // Alternative pattern matching
+        const altMatch = contentDisposition.match(
+          /filename=["']?([^"';]+)["']?/i
+        );
+        if (altMatch && altMatch[1]) {
+          filename = altMatch[1];
+        }
+      }
     }
+
+    console.log("📁 Downloading folder with filename:", filename);
 
     link.setAttribute("download", filename);
     document.body.appendChild(link);
@@ -258,7 +280,9 @@ const downloadFolder = async (id: number): Promise<void> => {
 
 // hooks/useFiles.ts - Add this function
 const fetchRootFiles = async (): Promise<File[]> => {
-  console.log(`🔍 Frontend fetchRootFiles called - url: ${API_BASE_URL}/files/root`);
+  console.log(
+    `🔍 Frontend fetchRootFiles called - url: ${API_BASE_URL}/files/root`
+  );
 
   const response = await axios.get(`${API_BASE_URL}/files/root`, {
     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },

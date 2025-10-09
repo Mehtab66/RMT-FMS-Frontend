@@ -10,7 +10,7 @@ import {
   // FiStar,
   FiTrash2,
 } from "react-icons/fi";
-import ReviveMedicalTechLogo from "../assets/ReviveMedicalTech.png";
+import ReviveMedicalTechLogo from "/ReviveMedicalTech.png";
 import FileManagement from "../components/FileManagement";
 import UserManagementView from "../components/UserManagementView";
 // import FavoritesView from "../components/FavoritesView";
@@ -216,14 +216,7 @@ const Dashboard: React.FC = () => {
                   {user.username}
                 </p>
                 <p className="text-xs text-gray-500 capitalize">{user.role}</p>
-                {user.role === "super_admin" && (
-                  <button
-                    onClick={() => handleEditUser(user)}
-                    className="text-xs text-blue-600 hover:text-blue-700 mt-1"
-                  >
-                    Edit my details
-                  </button>
-                )}
+               
               </div>
             </div>
           </div>

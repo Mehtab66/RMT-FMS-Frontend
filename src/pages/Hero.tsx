@@ -2,11 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
 // Import the logo
-import Logo from "../assets/ReviveMedicalTech.png";
+import Logo from "/ReviveMedicalTech.png";
 import DrMurtaza from "../assets/DrMurtaza.jpeg";
-import Abdullah from "../assets/Abdullah.png";
 import Ammad from "../assets/Ammad.png";
-
+import soal from "../assets/soal.jpg";
 // Define TypeScript interfaces
 interface Feature {
   id: number;
@@ -70,7 +69,7 @@ const RMTFileManagementSystem: React.FC = () => {
     {
       id: 1,
       name: "Dr. Murtaza Najabat Ali",
-      role: "CEO, CEng (UK), DIMechE, PE",
+      role: "Chief Executive Officer",
       content:
         "This system has revolutionized how we manage our research documents and medical files. The file sharing capabilities are incredibly secure yet remarkably intuitive.",
       avatar: DrMurtaza, // Using DrMurtaza image for CEO
@@ -78,18 +77,18 @@ const RMTFileManagementSystem: React.FC = () => {
     {
       id: 2,
       name: "Ammad Ahmed",
-      role: "Chief Operating Officer",
+      role: "Chief Production Officer",
       content:
         "File sharing used to be our biggest bottleneck - now it's our greatest strength. The granular permission system lets me share exactly what's needed with exactly who needs it.",
       avatar: Ammad, // Using Ammad.png for Ammad Ahmed
     },
     {
       id: 3,
-      name: "Asad Abdullah Shahid",
-      role: "Production Manager",
+      name: "Suhail Meghwar",
+      role: "Quality Manager",
       content:
         "We went from struggling with chaotic file sharing methods to having a streamlined, secure system. Sharing large project files across teams is now instantaneous and foolproof.",
-      avatar: Abdullah, // Using Abdullah.png for Asad Abdullah
+      avatar: soal, // Using Abdullah.png for Asad Abdullah
     },
   ];
 
@@ -433,9 +432,9 @@ const RMTFileManagementSystem: React.FC = () => {
       <footer className="bg-gray-900 text-white py-12">
         <div className="container mx-auto px-4">
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500">
-            <p>
+            {/* <p>
               Developed with <span className="text-red-500">❤️</span> by Mehtab
-            </p>
+            </p> */}
             <p className="mt-2">
               &copy; 2025 Revive Medical Technologies. All rights reserved.
             </p>

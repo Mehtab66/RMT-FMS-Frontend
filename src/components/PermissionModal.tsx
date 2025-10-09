@@ -2,21 +2,22 @@
 import React, { useState, useEffect } from "react";
 import { Dialog } from "@headlessui/react";
 import { useUsers } from "../hooks/useAuth";
-import { useAssignPermission, useResourcePermissions } from "../hooks/usePermissions";
-import type { User } from "../types";
 import {
-  FiKey,
-  FiX,
-  FiUser,
-  FiEye,
-  FiDownload,
-} from "react-icons/fi";
+  useAssignPermission,
+  useResourcePermissions,
+} from "../hooks/usePermissions";
+import type { User } from "../types";
+import { FiKey, FiX, FiUser, FiEye, FiDownload } from "react-icons/fi";
 
 interface PermissionModalProps {
   isOpen: boolean;
   onClose: () => void;
   resourceId: number;
   resourceType: "folder" | "file";
+  showToast?: (
+    message: string,
+    type: "success" | "error" | "info" | "warning"
+  ) => void;
 }
 
 const PermissionModal: React.FC<PermissionModalProps> = ({
@@ -24,15 +25,26 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
   onClose,
   resourceId,
   resourceType,
+  showToast = () => {},
 }) => {
   const { data: users } = useUsers();
   const assignPermission = useAssignPermission();
-  const { data: resourcePermissions } = useResourcePermissions(resourceId, resourceType);
+  const { data: resourcePermissions } = useResourcePermissions(
+    resourceId,
+    resourceType
+  );
+
   const [selectedUser, setSelectedUser] = useState<number | null>(null);
   const [permissions, setPermissions] = useState({
     can_read: false,
     can_download: false,
   });
+
+  // State to track initial permissions for comparison
+  const [initialPermissions, setInitialPermissions] = useState<{
+    can_read: boolean;
+    can_download: boolean;
+  } | null>(null);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -42,6 +54,7 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
         can_read: false,
         can_download: false,
       });
+      setInitialPermissions(null);
     }
   }, [isOpen]);
 
@@ -51,35 +64,77 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
       const existingPermission = resourcePermissions.find(
         (perm) => perm.user_id === selectedUser
       );
-      
+
       if (existingPermission) {
-        setPermissions({
+        const newPermissions = {
           can_read: existingPermission.can_read || false,
           can_download: existingPermission.can_download || false,
-        });
+        };
+        setPermissions(newPermissions);
+        setInitialPermissions(newPermissions); // Store initial state for comparison
       } else {
-        setPermissions({
+        const emptyPermissions = {
           can_read: false,
           can_download: false,
-        });
+        };
+        setPermissions(emptyPermissions);
+        setInitialPermissions(emptyPermissions); // Store initial state for comparison
       }
     }
   }, [selectedUser, resourcePermissions]);
 
+  // Check if permissions have actually changed
+  const hasPermissionsChanged = (): boolean => {
+    if (!initialPermissions) return true; // No initial state, consider it changed
+
+    return (
+      permissions.can_read !== initialPermissions.can_read ||
+      permissions.can_download !== initialPermissions.can_download
+    );
+  };
+
   const handleSubmit = () => {
-    if (selectedUser) {
-      assignPermission.mutate(
-        {
-          user_id: selectedUser,
-          resource_id: resourceId,
-          resource_type: resourceType,
-          ...permissions,
-        },
-        {
-          onSuccess: () => onClose(),
-        }
-      );
+    if (!selectedUser) return;
+
+    // Check if permissions have actually changed
+    if (!hasPermissionsChanged()) {
+      showToast("No changes made to permissions", "info");
+      onClose();
+      return;
     }
+
+    assignPermission.mutate(
+      {
+        user_id: selectedUser,
+        resource_id: resourceId,
+        resource_type: resourceType,
+        ...permissions,
+      },
+      {
+        onSuccess: () => {
+          showToast("Permissions updated successfully", "success");
+          onClose();
+        },
+        onError: (error) => {
+          showToast("Failed to update permissions", "error");
+          console.error("Permission assignment error:", error);
+        },
+      }
+    );
+  };
+
+  const handlePermissionChange = (key: string, checked: boolean) => {
+    const newPermissions = {
+      ...permissions,
+      [key]: checked,
+    };
+
+    // If unchecking view, also uncheck download
+    if (key === "can_read" && !checked) {
+      newPermissions.can_download = false;
+    }
+
+    setPermissions(newPermissions);
   };
 
   const permissionOptions = [
@@ -96,6 +151,21 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
       description: "Can download this resource",
     },
   ];
+
+  // Get current permissions display text
+  const getCurrentPermissionsText = () => {
+    const grantedPermissions = [];
+    if (permissions.can_read) grantedPermissions.push("View");
+    if (permissions.can_download) grantedPermissions.push("Download");
+
+    return grantedPermissions.length > 0
+      ? grantedPermissions.join(", ")
+      : "No permissions granted";
+  };
+
+  // Check if save button should be enabled
+  const isSaveEnabled =
+    selectedUser && selectedUser > 0 && hasPermissionsChanged();
 
   return (
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
@@ -140,14 +210,21 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
                 />
                 <select
                   className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 appearance-none bg-white"
-                  onChange={(e) => setSelectedUser(Number(e.target.value))}
+                  value={selectedUser || ""}
+                  onChange={(e) =>
+                    setSelectedUser(
+                      e.target.value ? Number(e.target.value) : null
+                    )
+                  }
                 >
                   <option value="">Choose a user...</option>
-                  {users?.filter((user: User) => user.role !== "super_admin").map((user: User) => (
-                    <option key={user.id} value={user.id}>
-                      {user.username} ({user.role})
-                    </option>
-                  ))}
+                  {users
+                    ?.filter((user: User) => user.role !== "super_admin")
+                    .map((user: User) => (
+                      <option key={user.id} value={user.id}>
+                        {user.username} ({user.role})
+                      </option>
+                    ))}
                 </select>
               </div>
             </div>
@@ -159,20 +236,15 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
                   Current Permissions:
                 </div>
                 <div className="text-sm text-gray-600">
-                  {(() => {
-                    const grantedPermissions = [];
-                    if (permissions.can_read) grantedPermissions.push("View");
-                    if (permissions.can_download) grantedPermissions.push("Download");
-                    
-                    return grantedPermissions.length > 0 
-                      ? grantedPermissions.join(", ") 
-                      : "No permissions granted";
-                  })()}
+                  {getCurrentPermissionsText()}
                 </div>
+                {!hasPermissionsChanged() && initialPermissions && (
+                  <div className="text-xs text-purple-600 mt-1 font-medium">
+                    • No changes made
+                  </div>
+                )}
               </div>
             )}
-
-            {/* Show NOTHING when default option is selected */}
 
             {/* Show permissions when user is selected */}
             {selectedUser && selectedUser > 0 && (
@@ -187,7 +259,7 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
                       if (key === "can_download" && !permissions.can_read) {
                         return null;
                       }
-                      
+
                       return (
                         <label
                           key={key}
@@ -195,20 +267,12 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
                         >
                           <input
                             type="checkbox"
-                            checked={permissions[key as keyof typeof permissions]}
-                            onChange={(e) => {
-                              const newPermissions = {
-                                ...permissions,
-                                [key]: e.target.checked,
-                              };
-                              
-                              // If unchecking view, also uncheck download
-                              if (key === "can_read" && !e.target.checked) {
-                                newPermissions.can_download = false;
-                              }
-                              
-                              setPermissions(newPermissions);
-                            }}
+                            checked={
+                              permissions[key as keyof typeof permissions]
+                            }
+                            onChange={(e) =>
+                              handlePermissionChange(key, e.target.checked)
+                            }
                             className="mt-0.5 text-purple-600 focus:ring-purple-500 rounded"
                           />
                           <div className="flex-1">
@@ -240,7 +304,7 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
             </button>
             <button
               onClick={handleSubmit}
-              disabled={!selectedUser || assignPermission.isPending}
+              disabled={!isSaveEnabled || assignPermission.isPending}
               className="px-4 py-2 text-sm bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {assignPermission.isPending ? (

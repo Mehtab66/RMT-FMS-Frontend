@@ -43,6 +43,10 @@ interface FileManagementProps {
   ) => void;
   onFolderSelect: (folderId: number | null) => void;
   onBackNavigation?: () => void;
+  showToast?: (
+    message: string,
+    type: "success" | "error" | "info" | "warning"
+  ) => void; // Add toast function
 }
 
 const FileManagement: React.FC<FileManagementProps> = ({
@@ -57,6 +61,7 @@ const FileManagement: React.FC<FileManagementProps> = ({
   setPermissionResource,
   onFolderSelect,
   onBackNavigation,
+  showToast = () => {}, // Default empty function
 }) => {
   const { data: files, isLoading: filesLoading } = useFiles(selectedFolderId);
   const { data: rootFiles, isLoading: rootFilesLoading } = useRootFiles();
@@ -135,6 +140,15 @@ const FileManagement: React.FC<FileManagementProps> = ({
     return false;
   };
 
+  // Check if user should see the 3-dot menu for a folder
+  const shouldShowThreeDotMenu = (folderId: number): boolean => {
+    // Super admin always sees the menu
+    if (user.role === "super_admin") return true;
+
+    // Check if user has download permission
+    return hasDownloadPermission(folderId);
+  };
+
   // State for dropdown management
   const [openDropdownId, setOpenDropdownId] = React.useState<number | null>(
     null
@@ -183,6 +197,12 @@ const FileManagement: React.FC<FileManagementProps> = ({
     setIsPermissionModalOpen(true);
   };
 
+  // Handle permission modal close with change detection
+  const handlePermissionModalClose = () => {
+    setIsPermissionModalOpen(false);
+    setPermissionResource(null);
+  };
+
   // Get the items to display based on whether we're in root or a specific folder
   const displayFiles = selectedFolderId ? files : rootFiles;
   const displayFolders = selectedFolderId ? subFolders || [] : rootFolders; // Show subfolders when inside a folder
@@ -192,7 +212,10 @@ const FileManagement: React.FC<FileManagementProps> = ({
 
   // Debug: Log files data
   React.useEffect(() => {
-    console.log("🔍 [FileManagement] Display files:", displayFiles?.map(f => ({ id: f.id, name: f.name })));
+    console.log(
+      "🔍 [FileManagement] Display files:",
+      displayFiles?.map((f) => ({ id: f.id, name: f.name }))
+    );
     console.log("🔍 [FileManagement] Selected folder ID:", selectedFolderId);
     console.log("🔍 [FileManagement] Files loading:", filesLoading);
     console.log("🔍 [FileManagement] Root files loading:", rootFilesLoading);
@@ -374,82 +397,84 @@ const FileManagement: React.FC<FileManagementProps> = ({
                         />
                       </button> */}
 
-                      {/* 3-dot dropdown menu */}
-                      <div className="relative">
-                        <button
-                          onClick={(e) => handleDropdownToggle(folder.id, e)}
-                          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
-                          title="More options"
-                        >
-                          <FiMoreVertical size={16} />
-                        </button>
+                      {/* 3-dot dropdown menu - Only show if user has download permission or is super admin */}
+                      {shouldShowThreeDotMenu(folder.id) && (
+                        <div className="relative">
+                          <button
+                            onClick={(e) => handleDropdownToggle(folder.id, e)}
+                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                            title="More options"
+                          >
+                            <FiMoreVertical size={16} />
+                          </button>
 
-                        {openDropdownId === folder.id && (
-                          <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                            <div className="py-1">
-                              {user.role === "super_admin" &&
-                                !folder.parent_id && (
+                          {openDropdownId === folder.id && (
+                            <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                              <div className="py-1">
+                                {user.role === "super_admin" &&
+                                  !folder.parent_id && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleAssignPermission(
+                                          folder.id,
+                                          "folder"
+                                        );
+                                        setOpenDropdownId(null);
+                                      }}
+                                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                    >
+                                      <FiKey className="mr-3" size={16} />
+                                      Permissions
+                                    </button>
+                                  )}
+                                {hasDownloadPermission(folder.id) && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleAssignPermission(
-                                        folder.id,
-                                        "folder"
-                                      );
-                                      setOpenDropdownId(null);
+                                      handleDownloadFolder(folder.id);
                                     }}
                                     className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                                   >
-                                    <FiKey className="mr-3" size={16} />
-                                    Permissions
+                                    <FiDownload className="mr-3" size={16} />
+                                    Download
                                   </button>
                                 )}
-                              {hasDownloadPermission(folder.id) && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDownloadFolder(folder.id);
-                                  }}
-                                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                >
-                                  <FiDownload className="mr-3" size={16} />
-                                  Download
-                                </button>
-                              )}
-                              {user.role === "super_admin" && (
-                                <>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRenameFolder(
-                                        folder.id,
-                                        folder.name
-                                      );
-                                    }}
-                                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                  >
-                                    <FiEdit3 className="mr-3" size={16} />
-                                    Rename
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteFolder(
-                                        folder.id,
-                                        folder.name
-                                      );
-                                    }}
-                                    className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                                  >
-                                    <FiTrash2 className="mr-3" size={16} />
-                                    Delete
-                                  </button>
-                                </>
-                              )}
+                                {user.role === "super_admin" && (
+                                  <>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRenameFolder(
+                                          folder.id,
+                                          folder.name
+                                        );
+                                      }}
+                                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                    >
+                                      <FiEdit3 className="mr-3" size={16} />
+                                      Rename
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteFolder(
+                                          folder.id,
+                                          folder.name
+                                        );
+                                      }}
+                                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                                    >
+                                      <FiTrash2 className="mr-3" size={16} />
+                                      Delete
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -529,9 +554,10 @@ const FileManagement: React.FC<FileManagementProps> = ({
       {permissionResource && (
         <PermissionModal
           isOpen={isPermissionModalOpen}
-          onClose={() => setIsPermissionModalOpen(false)}
+          onClose={handlePermissionModalClose}
           resourceId={permissionResource.id}
           resourceType={permissionResource.type}
+          showToast={showToast} // Pass the toast function to PermissionModal
         />
       )}
     </>

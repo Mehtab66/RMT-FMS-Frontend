@@ -2,7 +2,7 @@
 import React from "react";
 import type { File } from "../types";
 import {
-  useDownloadFile,
+  // useDownloadFile,
   useDeleteFile,
   // useToggleFileFavourite,
   useRestoreFile,
@@ -21,6 +21,7 @@ import {
   FiTrash2,
   // FiHeart,
   FiRotateCcw,
+  FiExternalLink,
 } from "react-icons/fi";
 
 interface FileListProps {
@@ -39,7 +40,7 @@ const FileList: React.FC<FileListProps> = ({
   userId,
   isTrashView = false,
 }) => {
-  const downloadFile = useDownloadFile();
+  // const downloadFile = useDownloadFile();
   const deleteFile = useDeleteFile();
   // const toggleFavourite = useToggleFileFavourite();
   const restoreFile = useRestoreFile();
@@ -80,26 +81,167 @@ const FileList: React.FC<FileListProps> = ({
     return false;
   };
 
-  const handleDownload = (fileId: number) => {
-    console.log(`🖱️ Download button clicked for file ID: ${fileId}`);
-    console.log(`📁 Available files:`, files.map(f => ({ id: f.id, name: f.name })));
-    
-    // Validate file ID
-    if (!fileId || isNaN(fileId)) {
-      console.error("Invalid file ID:", fileId);
-      return;
+  // Check if user has view permission for a file
+  const hasViewPermission = (fileId: number) => {
+    if (!userPermissions) return false;
+
+    // Check if file is owned by user (owners have all permissions)
+    const file = files.find((f) => f.id === fileId);
+    if (file && userId && file.created_by === userId) {
+      return true;
     }
-    
-    // Check if file exists in the current files list
-    const fileExists = files.find(f => f.id === fileId);
-    if (!fileExists) {
-      console.error(`File with ID ${fileId} not found in current files list`);
-      console.log(`Available file IDs:`, files.map(f => f.id));
-      console.log(`Available files:`, files.map(f => ({ id: f.id, name: f.name })));
-      return;
+
+    // Check direct permission for this file
+    const directPermission = userPermissions.find(
+      (perm) => perm.resource_id === fileId && perm.resource_type === "file"
+    );
+
+    if (directPermission) {
+      return directPermission.can_read || false;
     }
-    
-    downloadFile.mutate(fileId);
+
+    // Check inherited permission from parent folder
+    if (file && file.folder_id) {
+      const folderPermission = userPermissions.find(
+        (perm) =>
+          perm.resource_id === file.folder_id && perm.resource_type === "folder"
+      );
+
+      if (folderPermission) {
+        return folderPermission.can_read || false;
+      }
+    }
+
+    return false;
+  };
+
+  const handleDownload = async (file: File) => {
+    try {
+      console.log(
+        `🖱️ Download button clicked - ID: ${file.id}, Name: ${file.name}`
+      );
+
+      // Validate file ID
+      if (!file.id || isNaN(file.id)) {
+        console.error("Invalid file ID:", file.id);
+        return;
+      }
+
+      // Check if file exists in the current files list
+      const fileExists = files.find((f) => f.id === file.id);
+      if (!fileExists) {
+        console.error(
+          `File with ID ${file.id} not found in current files list`
+        );
+        return;
+      }
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("No token found");
+        return;
+      }
+
+      // Use the correct backend endpoint: /files/download/{id}
+      const fileUrl = `http://13.233.6.224:3100/api/files/download/${file.id}`;
+      console.log(`📥 Downloading from: ${fileUrl}`);
+
+      const response = await fetch(fileUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        console.error("Failed to download file");
+        return;
+      }
+
+      // Get filename from headers or fallback
+      const disposition = response.headers.get("content-disposition");
+      let filename = file.name;
+      if (disposition && disposition.includes("filename=")) {
+        filename = disposition
+          .split("filename=")[1]
+          .replace(/['"]/g, "")
+          .trim();
+      }
+
+      // Convert to blob and trigger download
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename; // ✅ triggers direct download
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      // Cleanup blob URL
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("Error downloading file:", error);
+    }
+  };
+
+  const handleOpenFile = async (file: File) => {
+    try {
+      console.log(
+        `🖱️ File clicked for viewing - ID: ${file.id}, Name: ${file.name}`
+      );
+
+      // Validate file ID
+      if (!file.id || isNaN(file.id)) {
+        console.error("Invalid file ID:", file.id);
+        return;
+      }
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("No token found");
+        return;
+      }
+
+      // Use the same endpoint but fetch with Authorization header
+      const fileUrl = `http://13.233.6.224:3100/api/files/download/${file.id}`;
+      console.log(`👁️ Fetching file for viewing: ${fileUrl}`);
+
+      const response = await fetch(fileUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        console.error("Failed to fetch file for viewing");
+        return;
+      }
+
+      // Get the blob and create a blob URL
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      // Open the blob URL in a new window
+      const newWindow = window.open(blobUrl, "_blank");
+
+      // Clean up the blob URL after the window is closed or after some time
+      if (newWindow) {
+        newWindow.onload = () => {
+          // Give some time for the file to load before revoking the URL
+          setTimeout(() => {
+            window.URL.revokeObjectURL(blobUrl);
+          }, 1000);
+        };
+      } else {
+        // If popup was blocked, revoke immediately
+        window.URL.revokeObjectURL(blobUrl);
+      }
+    } catch (error) {
+      console.error("Error opening file:", error);
+    }
   };
 
   const handleDelete = (fileId: number, fileName: string) => {
@@ -149,75 +291,6 @@ const FileList: React.FC<FileListProps> = ({
           alert("Failed to permanently delete file. Please try again.");
         },
       });
-    }
-  };
-
-  const handleFileClick = async (file: File) => {
-    try {
-      console.log(`🖱️ File clicked for download - ID: ${file.id}, Name: ${file.name}`);
-      console.log(`📁 Available files:`, files.map(f => ({ id: f.id, name: f.name })));
-      
-      // Validate file ID
-      if (!file.id || isNaN(file.id)) {
-        console.error("Invalid file ID:", file.id);
-        return;
-      }
-      
-      // Check if file exists in the current files list
-      const fileExists = files.find(f => f.id === file.id);
-      if (!fileExists) {
-        console.error(`File with ID ${file.id} not found in current files list`);
-        console.log(`Available file IDs:`, files.map(f => f.id));
-        return;
-      }
-      
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.error("No token found");
-        return;
-      }
-
-      // Use the correct backend endpoint: /files/download/{id}
-      const fileUrl = `http://13.233.6.224:3100/api/files/download/${file.id}`;
-      console.log(`📥 Downloading from: ${fileUrl}`);
-
-      const response = await fetch(fileUrl, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        console.error("Failed to download file");
-        return;
-      }
-
-      // Get filename from headers or fallback
-      const disposition = response.headers.get("content-disposition");
-      let filename = file.name;
-      if (disposition && disposition.includes("filename=")) {
-        filename = disposition
-          .split("filename=")[1]
-          .replace(/['"]/g, "")
-          .trim();
-      }
-
-      // Convert to blob and trigger download
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = filename; // ✅ triggers direct download
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      // Cleanup blob URL
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      console.error("Error downloading file:", error);
     }
   };
 
@@ -271,14 +344,16 @@ const FileList: React.FC<FileListProps> = ({
           {files.map((file) => {
             const FileIcon = getFileIcon(file.mime_type);
             const fileColor = getFileColor(file.mime_type);
+            const canView = hasViewPermission(file.id);
+            const canDownload = hasDownloadPermission(file.id);
 
             return (
               <div
                 key={file.id}
-                onClick={() => handleFileClick(file)}
-                className={`flex items-center space-x-4 p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all duration-200 cursor-pointer ${
-                  isTrashView ? "opacity-75" : ""
-                }`}
+                onClick={() => canView && handleOpenFile(file)}
+                className={`flex items-center space-x-4 p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all duration-200 ${
+                  canView ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+                } ${isTrashView ? "opacity-75" : ""}`}
               >
                 <div className={`p-3 rounded-xl ${fileColor}`}>
                   <FileIcon size={24} />
@@ -301,6 +376,11 @@ const FileList: React.FC<FileListProps> = ({
                           {file.mime_type.split("/")[1] || file.mime_type}
                         </span>
                       </>
+                    )}
+                    {!canView && (
+                      <span className="text-red-500 text-xs font-medium">
+                        No view permission
+                      </span>
                     )}
                   </div>
                 </div>
@@ -331,13 +411,28 @@ const FileList: React.FC<FileListProps> = ({
                     </button>
                   )} */}
 
-                  {hasDownloadPermission(file.id) && !isTrashView && (
+                  {/* Open in new window button (for view permission) */}
+                  {canView && !isTrashView && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDownload(file.id);
+                        handleOpenFile(file);
                       }}
                       className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
+                      title="Open in new window"
+                    >
+                      <FiExternalLink size={18} />
+                    </button>
+                  )}
+
+                  {/* Download button (for download permission) */}
+                  {canDownload && !isTrashView && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(file);
+                      }}
+                      className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors"
                       title="Download"
                     >
                       <FiDownload size={18} />
@@ -352,7 +447,7 @@ const FileList: React.FC<FileListProps> = ({
                           e.stopPropagation();
                           onAssignPermission(file.id, "file");
                         }}
-                        className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors"
+                        className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-colors"
                         title="Set Permissions"
                       >
                         <FiKey size={18} />

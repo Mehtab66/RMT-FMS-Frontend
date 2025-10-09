@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useState, useRef, useEffect } from "react";
 import { Dialog } from "@headlessui/react";
 import { useUploadFile, useUploadFolder } from "../hooks/useFiles";
@@ -34,6 +32,15 @@ const UploadModal: React.FC<UploadModalProps> = ({
     }
   }, [isOpen]);
 
+  // ✅ Reset files when switching between upload types
+  const handleUploadTypeChange = (type: "file" | "folder") => {
+    if (type !== uploadType) {
+      setFiles(null);
+      if (fileInputRef.current) fileInputRef.current.value = ""; // reset input
+    }
+    setUploadType(type);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     const input = e.target;
@@ -61,7 +68,7 @@ const UploadModal: React.FC<UploadModalProps> = ({
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Only allow drag & drop for files, not folders
     if (uploadType === "file") {
       setIsDragging(true);
@@ -84,7 +91,11 @@ const UploadModal: React.FC<UploadModalProps> = ({
     setIsDragging(false);
 
     // Only allow drag & drop for files, not folders
-    if (uploadType === "file" && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+    if (
+      uploadType === "file" &&
+      e.dataTransfer.files &&
+      e.dataTransfer.files.length > 0
+    ) {
       setFiles(e.dataTransfer.files);
     }
     // For folders, do nothing (prevent default behavior)
@@ -94,7 +105,11 @@ const UploadModal: React.FC<UploadModalProps> = ({
     e.preventDefault();
 
     if (!files || files.length === 0) {
-      alert(`Please select ${uploadType === "folder" ? "a folder" : "file(s)"} to upload.`);
+      alert(
+        `Please select ${
+          uploadType === "folder" ? "a folder" : "file(s)"
+        } to upload.`
+      );
       return;
     }
 
@@ -102,8 +117,10 @@ const UploadModal: React.FC<UploadModalProps> = ({
 
     if (uploadType === "folder") {
       // Check if we have webkitRelativePath for folder structure
-      const hasWebkitRelativePath = Array.from(files).some(file => 
-        (file as any).webkitRelativePath && (file as any).webkitRelativePath.includes('/')
+      const hasWebkitRelativePath = Array.from(files).some(
+        (file) =>
+          (file as any).webkitRelativePath &&
+          (file as any).webkitRelativePath.includes("/")
       );
 
       if (hasWebkitRelativePath) {
@@ -134,7 +151,7 @@ const UploadModal: React.FC<UploadModalProps> = ({
         }
         formData.append("allPaths", JSON.stringify([]));
       }
-      
+
       // Add folderId to formData for folder uploads
       if (folderId !== null) {
         formData.append("folderId", folderId.toString());
@@ -156,7 +173,7 @@ const UploadModal: React.FC<UploadModalProps> = ({
       for (const file of Array.from(files)) {
         formData.append("files", file);
       }
-      
+
       // Add folderId to formData for file uploads (backend expects folder_id)
       if (folderId !== null) {
         formData.append("folder_id", folderId.toString());
@@ -213,7 +230,7 @@ const UploadModal: React.FC<UploadModalProps> = ({
             {/* Upload Type */}
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => setUploadType("file")}
+                onClick={() => handleUploadTypeChange("file")}
                 className={`p-4 border-2 rounded-xl text-center transition-all ${
                   uploadType === "file"
                     ? "border-blue-500 bg-blue-50 text-blue-700"
@@ -224,7 +241,7 @@ const UploadModal: React.FC<UploadModalProps> = ({
                 <div className="font-medium">File(s)</div>
               </button>
               <button
-                onClick={() => setUploadType("folder")}
+                onClick={() => handleUploadTypeChange("folder")}
                 className={`p-4 border-2 rounded-xl text-center transition-all ${
                   uploadType === "folder"
                     ? "border-blue-500 bg-blue-50 text-blue-700"
