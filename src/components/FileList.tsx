@@ -186,63 +186,36 @@ const FileList: React.FC<FileListProps> = ({
     }
   };
 
-  const handleOpenFile = async (file: File) => {
+  const handleOpenFile = async (fileId: number, token: string) => {
+    const fileUrl = `http://13.233.6.224:3100/api/files/open/${fileId}`;
+
+    // open blank tab immediately to prevent popup blocking
+    const newTab = window.open("", "_blank");
+    if (!newTab) {
+      alert("Please allow popups for this site.");
+      return;
+    }
+
     try {
-      console.log(
-        `🖱️ File clicked for viewing - ID: ${file.id}, Name: ${file.name}`
-      );
-
-      // Validate file ID
-      if (!file.id || isNaN(file.id)) {
-        console.error("Invalid file ID:", file.id);
-        return;
-      }
-
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.error("No token found");
-        return;
-      }
-
-      // Use the same endpoint but fetch with Authorization header
-      const fileUrl = `http://13.233.6.224:3100/api/files/download/${file.id}`;
-      console.log(`👁️ Fetching file for viewing: ${fileUrl}`);
-
       const response = await fetch(fileUrl, {
-        method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
-        console.error("Failed to fetch file for viewing");
-        return;
+        throw new Error("Failed to open file");
       }
 
-      // Get the blob and create a blob URL
       const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-
-      // Open the blob URL in a new window
-      const newWindow = window.open(blobUrl, "_blank");
-
-      // Clean up the blob URL after the window is closed or after some time
-      if (newWindow) {
-        newWindow.onload = () => {
-          // Give some time for the file to load before revoking the URL
-          setTimeout(() => {
-            window.URL.revokeObjectURL(blobUrl);
-          }, 1000);
-        };
-      } else {
-        // If popup was blocked, revoke immediately
-        window.URL.revokeObjectURL(blobUrl);
-      }
-    } catch (error) {
-      console.error("Error opening file:", error);
+      const blobUrl = URL.createObjectURL(blob);
+      newTab.location.href = blobUrl;
+    } catch (err) {
+      console.error("❌ Error opening file:", err);
+      newTab.close();
     }
   };
+
   const handleDelete = (fileId: number, fileName: string) => {
     if (window.confirm(`Are you sure you want to delete "${fileName}"?`)) {
       deleteFile.mutate(fileId);
@@ -349,7 +322,6 @@ const FileList: React.FC<FileListProps> = ({
             return (
               <div
                 key={file.id}
-                onClick={() => canView && handleOpenFile(file)}
                 className={`flex items-center space-x-4 p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all duration-200 ${
                   canView ? "cursor-pointer" : "cursor-not-allowed opacity-50"
                 } ${isTrashView ? "opacity-75" : ""}`}
@@ -415,7 +387,8 @@ const FileList: React.FC<FileListProps> = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleOpenFile(file);
+                        const token = localStorage.getItem("token") || "";
+                        handleOpenFile(file.id, token);
                       }}
                       className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
                       title="Open in new window"

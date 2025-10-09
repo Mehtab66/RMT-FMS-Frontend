@@ -7,6 +7,7 @@ The **RMT-FMS (Revive Medical Tech File Management System)** is a full-stack web
 ## Frontend Architecture (React + TypeScript)
 
 ### Technology Stack
+
 - **Framework**: React 19.1.1 with TypeScript
 - **Build Tool**: Vite 7.1.9
 - **Styling**: Tailwind CSS 4.1.13
@@ -18,6 +19,7 @@ The **RMT-FMS (Revive Medical Tech File Management System)** is a full-stack web
 - **Notifications**: React Toastify 11.0.5
 
 ### Project Structure
+
 ```
 src/
 ├── components/          # Reusable UI components
@@ -45,6 +47,7 @@ src/
 ```
 
 ### Key Features
+
 1. **Role-Based Access Control**: Three user roles (super_admin, admin, user)
 2. **File Management**: Upload, download, rename, delete files
 3. **Folder Management**: Create, navigate, organize folders hierarchically
@@ -54,6 +57,7 @@ src/
 7. **Responsive Design**: Mobile-friendly interface
 
 ### State Management Pattern
+
 - Uses **TanStack React Query** for server state management
 - Custom hooks encapsulate API calls and caching
 - Local state managed with React hooks
@@ -62,6 +66,7 @@ src/
 ## Backend Architecture (Node.js + Express)
 
 ### Technology Stack
+
 - **Runtime**: Node.js
 - **Framework**: Express.js 4.16.1
 - **Database**: MySQL with Knex.js 3.1.0 query builder
@@ -72,6 +77,7 @@ src/
 - **CORS**: cors 2.8.5
 
 ### Project Structure
+
 ```
 ├── controllers/        # Request handlers
 │   ├── authController.js      # Authentication logic
@@ -100,6 +106,7 @@ src/
 ```
 
 ### API Architecture
+
 - **RESTful API** design with clear resource-based endpoints
 - **Middleware-based** request processing pipeline
 - **Service layer** separation for business logic
@@ -108,28 +115,24 @@ src/
 ## Database Schema
 
 ### Core Tables
+
 1. **users**: User accounts and roles
    - id, username, password_hash, role
-   
 2. **folders**: Hierarchical folder structure
    - id, name, parent_id, created_by, timestamps
-   
 3. **files**: File metadata and storage info
    - id, name, original_name, folder_id, file_path, file_url, mime_type, size, created_by, timestamps, is_deleted
-   
 4. **permissions**: Granular access control
    - id, user_id, resource_id, resource_type, can_read, can_download, timestamps
-   
 5. **shared_resources**: Resource sharing system
    - id, resource_id, resource_type, shared_by, shared_with, share_token, permissions, expires_at
-   
 6. **user_favourite_files**: User favorites
    - user_id, file_id, created_at
-   
 7. **user_favourite_folders**: Folder favorites
    - user_id, folder_id, created_at
 
 ### Key Relationships
+
 - Folders have self-referencing parent-child relationships
 - Files belong to folders (optional)
 - Permissions link users to resources (files/folders)
@@ -138,6 +141,7 @@ src/
 ## Frontend-Backend Integration
 
 ### Authentication Flow
+
 1. User submits credentials via `/api/auth/login`
 2. Backend validates and returns JWT token
 3. Frontend stores token in localStorage
@@ -145,13 +149,15 @@ src/
 5. Backend validates token via authMiddleware
 
 ### API Communication Pattern
-- **Base URL**: `http://localhost:3000/api`
+
+- **Base URL**: `http://13.233.6.224:3100/api`
 - **Authentication**: Bearer token in Authorization header
 - **Error Handling**: Consistent error response format
 - **File Uploads**: Multipart/form-data with progress tracking
 - **Real-time Updates**: React Query for automatic cache invalidation
 
 ### Key API Endpoints
+
 ```
 Authentication:
 POST /api/auth/login
@@ -184,18 +190,21 @@ DELETE /api/folders/:id
 ## Security Features
 
 ### Authentication & Authorization
+
 - **JWT-based** authentication with configurable expiration
 - **Role-based access control** (super_admin, admin, user)
 - **Permission middleware** for granular resource access
 - **Password hashing** using bcrypt with salt rounds
 
 ### File Security
+
 - **Local file storage** with organized directory structure
 - **File type validation** and size limits
 - **Secure file serving** with proper headers
 - **Soft delete** system for data recovery
 
 ### Data Protection
+
 - **SQL injection prevention** via Knex.js parameterized queries
 - **CORS configuration** for cross-origin requests
 - **Input validation** and sanitization
@@ -204,18 +213,21 @@ DELETE /api/folders/:id
 ## File Management Features
 
 ### Upload Capabilities
+
 - **Single file upload** with progress tracking
 - **Multiple file upload** with batch processing
 - **Folder upload** with structure preservation
 - **Drag-and-drop** interface support
 
 ### Organization System
+
 - **Hierarchical folder structure** with unlimited nesting
 - **Breadcrumb navigation** for deep folder access
 - **Search and filtering** capabilities
 - **Favorites system** for quick access
 
 ### File Operations
+
 - **Download** individual files or entire folders (ZIP)
 - **Rename** files and folders
 - **Move** files between folders
@@ -226,18 +238,21 @@ DELETE /api/folders/:id
 ## User Experience Features
 
 ### Interface Design
+
 - **Modern, responsive** design with Tailwind CSS
 - **Dark/light theme** support
 - **Mobile-first** approach
 - **Intuitive navigation** with sidebar and breadcrumbs
 
 ### Performance Optimizations
+
 - **React Query caching** for API responses
 - **Lazy loading** for large file lists
 - **Optimistic updates** for better UX
 - **Progress indicators** for long operations
 
 ### Accessibility
+
 - **Keyboard navigation** support
 - **Screen reader** compatibility
 - **High contrast** mode support
@@ -246,18 +261,21 @@ DELETE /api/folders/:id
 ## Development & Deployment
 
 ### Development Setup
+
 - **Hot reload** with Vite for frontend
 - **Nodemon** for backend development
 - **Environment variables** for configuration
 - **Database migrations** for schema management
 
 ### Build Process
+
 - **TypeScript compilation** for type safety
 - **Code splitting** for optimal bundle size
 - **Asset optimization** and minification
 - **Production-ready** builds
 
 ### Configuration
+
 - **Environment-based** configuration
 - **Database connection** pooling
 - **CORS** and security headers
@@ -266,6 +284,7 @@ DELETE /api/folders/:id
 ## Strengths & Areas for Improvement
 
 ### Strengths
+
 1. **Well-structured** codebase with clear separation of concerns
 2. **Type safety** with TypeScript throughout
 3. **Modern React patterns** with hooks and functional components
@@ -275,6 +294,7 @@ DELETE /api/folders/:id
 7. **Clean API design** with RESTful principles
 
 ### Potential Improvements
+
 1. **Testing**: Add unit and integration tests
 2. **Documentation**: API documentation with Swagger/OpenAPI
 3. **Monitoring**: Add logging and error tracking
