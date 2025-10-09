@@ -155,14 +155,14 @@ const downloadFile = async (id: number, fileName?: string): Promise<void> => {
     // Get filename from content-disposition header or use provided filename
     const contentDisposition = response.headers["content-disposition"];
     console.log("🔍 Content-Disposition header:", contentDisposition);
-    
+
     let filename = `file-${id}`;
     if (contentDisposition) {
       // Split by semicolon and find the filename part
-      const parts = contentDisposition.split(';');
+      const parts = contentDisposition.split(";");
       for (const part of parts) {
         const trimmed = part.trim();
-        if (trimmed.startsWith('filename=')) {
+        if (trimmed.startsWith("filename=")) {
           filename = trimmed.substring(9); // Remove "filename="
           // Remove quotes if present
           if (filename.startsWith('"') && filename.endsWith('"')) {
@@ -177,7 +177,9 @@ const downloadFile = async (id: number, fileName?: string): Promise<void> => {
       filename = fileName;
       console.log("🔍 Using provided filename:", filename);
     } else {
-      console.log("❌ No Content-Disposition header found and no filename provided");
+      console.log(
+        "❌ No Content-Disposition header found and no filename provided"
+      );
       filename = `downloaded-file-${id}`;
     }
 
@@ -539,7 +541,8 @@ export const useUploadFolder = () => {
 
 export const useDownloadFile = () =>
   useMutation({
-    mutationFn: ({ id, fileName }: { id: number; fileName?: string }) => downloadFile(id, fileName),
+    mutationFn: ({ id, fileName }: { id: number; fileName?: string }) =>
+      downloadFile(id, fileName),
     onSuccess: () => {
       toast.success("File downloaded successfully!");
     },
