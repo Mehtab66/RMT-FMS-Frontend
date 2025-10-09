@@ -243,7 +243,6 @@ const FileList: React.FC<FileListProps> = ({
       console.error("Error opening file:", error);
     }
   };
-
   const handleDelete = (fileId: number, fileName: string) => {
     if (window.confirm(`Are you sure you want to delete "${fileName}"?`)) {
       deleteFile.mutate(fileId);
