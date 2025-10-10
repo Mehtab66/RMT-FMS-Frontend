@@ -7,7 +7,7 @@ const Footer: React.FC = () => (
         Developed by Mehtab <span className="text-red-500">❤️</span>
       </p>
       <p className="text-sm mt-2">
-        &copy; 2025 Revive Medical Technologies. All rights reserved.
+        &copy; 2025 Revive Meditech Pvt Ltd . All rights reserved.
       </p>
     </div>
   </footer>

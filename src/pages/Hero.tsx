@@ -275,7 +275,7 @@ const RMTFileManagementSystem: React.FC = () => {
           <h1 className="text-5xl md:text-6xl font-bold text-gray-800 mb-6 leading-tight">
             Electronic Document Management System for
             <br />{" "}
-            <span className="text-blue-600">Revive Medical Technologies</span>
+            <span className="text-blue-600">Revive Meditech Pvt Ltd</span>
           </h1>
           <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
             Advanced file and folder management system with granular
@@ -436,7 +436,7 @@ const RMTFileManagementSystem: React.FC = () => {
               Developed with <span className="text-red-500">❤️</span> by Mehtab
             </p> */}
             <p className="mt-2">
-              &copy; 2025 Revive Medical Technologies. All rights reserved.
+              &copy; 2025 Revive Meditech Pvt Ltd . All rights reserved.
             </p>
           </div>
         </div>

@@ -19,11 +19,13 @@ const Header: React.FC<HeaderProps> = ({ user }) => {
       <div className="container mx-auto flex justify-between items-center">
         <div className="flex items-center">
           <div className="text-2xl font-bold">RMT</div>
-          <div className="ml-4 text-sm">Revive Medical Technologies</div>
+          <div className="ml-4 text-sm">Revive Meditech Pvt Ltd</div>
         </div>
         {user && (
           <div className="flex items-center space-x-4">
-            <span className="text-sm">{user.username} ({user.role})</span>
+            <span className="text-sm">
+              {user.username} ({user.role})
+            </span>
             <button
               onClick={handleLogout}
               className="bg-white text-blue-600 px-4 py-2 rounded hover:bg-gray-100"

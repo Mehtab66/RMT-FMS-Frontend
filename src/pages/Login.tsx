@@ -35,9 +35,7 @@ const LoginPage: React.FC = () => {
         <div className="w-full md:w-2/5 bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-8 flex flex-col justify-center">
           <div className="text-center md:text-left mb-8">
             <div className="text-4xl font-bold mb-2">RMT</div>
-            <div className="text-xl opacity-90">
-              Revive Medical Technologies
-            </div>
+            <div className="text-xl opacity-90">Revive Meditech Pvt Ltd</div>
           </div>
           <div className="my-8">
             <h2 className="text-2xl font-bold mb-4">

@@ -10,7 +10,7 @@ import {
   // FiStar,
   FiTrash2,
 } from "react-icons/fi";
-import ReviveMedicalTechLogo from "/ReviveMedicalTech.png";
+import ReviveMedicalTechLogo from "/ReviveMediTech.jpg";
 import FileManagement from "../components/FileManagement";
 import UserManagementView from "../components/UserManagementView";
 // import FavoritesView from "../components/FavoritesView";
@@ -154,7 +154,7 @@ const Dashboard: React.FC = () => {
               <img
                 src={ReviveMedicalTechLogo}
                 alt="Revive Medical Tech"
-                className="h-12 md:h-16 lg:h-20 xl:h-24 2xl:h-28 w-auto transition-all duration-300"
+                className="h-12 md:h-16 lg:h-20 xl:h-24 2xl:h-20 w-auto transition-all duration-300"
               />
             </div>
             <button
